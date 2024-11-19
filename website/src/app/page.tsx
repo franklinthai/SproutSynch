@@ -11,6 +11,7 @@ export default function Home() {
     <div className="flex flex-col items-center">
       <h1 className="font-bold text-2xl pb-4 text-center m-8">SproutSynch</h1>
       <button onClick={() => router.push("/add")} className="border-2 mt-4 p-1 rounded-2xl w-32 hover:bg-green-600 text-white" type="button">Add a plant</button>
+      <button onClick={() => router.push("/edit")} className="border-2 mt-4 p-1 rounded-2xl w-32 hover:bg-green-600 text-white" type="button">Edit a plant</button>
     </div>
   );
 }
