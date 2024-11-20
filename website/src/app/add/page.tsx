@@ -6,7 +6,7 @@ import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore"
 const { DateTime } = require("luxon");
 
 
-async function addFirestore(name, species, interval, time, ampm) {
+async function addFirestore(name, species, interval, time, ampm, duration) {
     try {
         // double check that the time and interval numbers are valid
         if (time < 1 || time > 12) {
@@ -15,6 +15,14 @@ async function addFirestore(name, species, interval, time, ampm) {
         }
         if (interval < 1) {
             alert("Interval is negative");
+            return false;
+        }
+        if (duration < 1) {
+            alert("Duration is negative");
+            return false;
+        }
+        if (duration > 20) {
+            alert("Duration is too long, don't drown your plants!");
             return false;
         }
         // translate from 12 hour to 24 hour clock (12am and 12pm are special since 12am = 00:00 
@@ -37,7 +45,8 @@ async function addFirestore(name, species, interval, time, ampm) {
         name: name,
         species: species,
         interval: interval,
-        last_watered: lastWatered.toISO()
+        last_watered: lastWatered.toISO(),
+        duration: duration
         });
         return true;
     } catch (error) {
@@ -53,11 +62,12 @@ export default function Add() {
     const [interval, setInterval] = useState(1);
     const [time, setTime] = useState(12);
     const [ampm, setAmpm] = useState("pm");
+    const [duration, setDuration] = useState(5);
 
     const onSubmitClick = async (e) => {
         e.preventDefault();
         // add to the database
-        const added = addFirestore(name, species, interval, time, ampm);
+        const added = addFirestore(name, species, interval, time, ampm, duration);
         // if successfully added, give a success alert and return to the main page
         if (added) { 
           router.push("/");
@@ -68,15 +78,16 @@ export default function Add() {
     return <div className="flex flex-col">
         <h1 className="font-bold text-2xl pb-4 center">New Plant</h1>
         <form onSubmit={(e) => onSubmitClick(e)}>
-            <div className="pb-2">Name: <input id="name" value={name} onChange={(e) => setName(e.target.value)} className="text-black rounded-lg h-6"></input></div>
-            <div className="pt-2">Species: <input id="species" value={species} onChange={(e) => setSpecies(e.target.value)} className="text-black rounded-lg h-6"></input></div>
-            <div className="pt-2">Watering Interval: Every <input type="number" id="interval" value={interval} onChange={(e) => setInterval(parseInt(e.target.value))} className="text-black rounded-lg w-9 h-6" min={1}></input>
+            <div className="m-2">Name: <input id="name" value={name} onChange={(e) => setName(e.target.value)} className="text-black rounded-lg h-6"></input></div>
+            <div className="m-2">Species: <input id="species" value={species} onChange={(e) => setSpecies(e.target.value)} className="text-black rounded-lg h-6"></input></div>
+            <div className="m-2">Watering Interval: Every <input type="number" id="interval" value={interval} onChange={(e) => setInterval(parseInt(e.target.value))} className="text-black rounded-lg w-9 h-6" min={1}></input>
                 {interval == 1 ? " day" : " days"} at <input type="number" id="time" value={time} onChange={(e) => setTime(parseInt(e.target.value))} className="text-black rounded-lg w-9 h-6" min={1} max={12}>
                 </input> <select id="ampm" value={ampm} onChange={(e) => setAmpm(e.target.value)} className="text-black rounded-lg w-12 h-6">
                     <option value="am">am</option>
                     <option value="pm">pm</option>
                 </select>
             </div>
+            <div className="m-2">Water for <input type="number" id="duration" value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} className="text-black rounded-lg w-9 h-6" min={1} max={20}></input> seconds each time</div>
             <button type="submit" className="border-2 mt-4 p-1 rounded-2xl hover:bg-green-600 bg-white text-black">Add</button>
         </form>
         <button onClick={() => router.push("/")} className="border-2 mt-4 p-1 rounded-2xl hover:bg-green-600 bg-white text-black w-16">Back</button>
