@@ -15,6 +15,7 @@ const pages = [
   { name: 'About us', path: '/about' },
 ];
 
+//  TODO ADD WHITE HIGHLIGITNG WHEN ON A SPECIFIC PAGE
 function ResponsiveAppBar() {
   const router = useRouter();
 
@@ -82,7 +83,6 @@ function ResponsiveAppBar() {
                 key={page.name}
                 onClick={() => handleNavigation(page.path)}
                 sx={{
-                  backgroundColor: page.name === 'Home' ? 'white' : 'transparent',
                   my: 2,
                   color: '#50734A',
                   display: 'block',

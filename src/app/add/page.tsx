@@ -4,7 +4,7 @@ import { db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
 import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
 const { DateTime } = require("luxon");
-
+import ResponsiveAppBar from "../navbar";
 
 async function addFirestore(name, species, interval, time, ampm, duration) {
     try {
@@ -76,6 +76,7 @@ export default function Add() {
     }
 
     return <div className="flex flex-col">
+         <ResponsiveAppBar></ResponsiveAppBar>
         <h1 className="font-bold text-2xl pb-4 center">New Plant</h1>
         <form onSubmit={(e) => onSubmitClick(e)}>
             <div className="m-2">Name: <input id="name" value={name} onChange={(e) => setName(e.target.value)} className="text-black rounded-lg h-6"></input></div>
