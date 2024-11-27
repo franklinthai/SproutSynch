@@ -10,6 +10,7 @@ import Image from 'next/image';
 import './globals.css';
 
 // TODO FIX BUTTON 
+// TODO IMAGE LOOKS JANK POSSIBLY SWITCH TO SVG
 export default function Home() {
   const router = useRouter();
 
