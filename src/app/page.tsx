@@ -15,18 +15,18 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <div className="bg-customGreen min-h-screen">
+    <body>
       <ResponsiveAppBar></ResponsiveAppBar>
       <div className="flex justify-around items-center min-h-[70vh]">
         <div className="flex flex-col space-y-4">
-          <p className="font-bold text-5xl text-customDarkGreen">Let's start <br></br>watering!</p>
-          <p className="text-sm text-base font-sans">
+          <h1>Let's start <br></br>watering!</h1>
+          <p>
             Help take care of your plants by tracking<br/> 
             watering schedules and soil moisture. Add your<br/>
             plants and get started on keeping them healthy<br/>
             and happy.
           </p>
-          <button onClick={() => router.push("/add")} className="border-2 mt-4 p-1 rounded-2xl w-32 bg-green-600 text-white" type="button">Add a plant</button>
+          <button onClick={() => router.push("/add")} type="button">Add a plant</button>
         </div>
         <div className="bg-custom-gradient rounded-full overflow-hidden w-96 h-96 flex items-center justify-center shadow-md">
           <div className="w-full h-full flex items-center justify-center">
@@ -43,6 +43,6 @@ export default function Home() {
       
       
 
-    </div>
+    </body>
   );
 }
