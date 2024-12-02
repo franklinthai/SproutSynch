@@ -8,7 +8,7 @@ import ResponsiveAppBar from "../navbar";
 
 let added = false;
 
-async function addFirestore(name, species, interval, time, ampm, duration) {
+export async function addFirestore(name, species, interval, time, ampm, duration) {
     try {
         // double check that the time interval and duration numbers are valid
         if (name === "") throw new Error("Name is required");
