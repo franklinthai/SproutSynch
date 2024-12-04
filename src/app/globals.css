@@ -36,7 +36,7 @@ input, select {
   border-color: rgb(64, 64, 64);
 }
 
-button {
+.ActionButton {
   padding: 0.5rem; 
   margin-top: 2.5rem; 
   border-radius: 1rem; 
@@ -47,6 +47,12 @@ button {
   color: #ffffff;
   border-color: rgb(80, 115, 74); 
   background-color: rgb(80, 115, 74);
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+
+.ActionButton:hover {
+  border-color: black;
+  background-color: rgb(100, 135, 94);
 }
 
 .Label {
@@ -60,4 +66,9 @@ button {
   color: rgb(64, 64, 64);
   border-color: rgb(64, 64, 64); 
   background-color: white;
+}
+
+.BackButton:hover {
+  border-color: black;
+  background-color: rgb(235,235,235);
 }

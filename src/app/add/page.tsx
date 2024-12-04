@@ -78,7 +78,7 @@ export default function Add() {
         }
     }
 
-    return <body className="flex flex-col items-center">
+    return <div className="flex flex-col items-center">
         <ResponsiveAppBar></ResponsiveAppBar>
         <h1 className="mt-12 mb-4">Customize your plant</h1>
         <div className="w-1/3">
@@ -99,9 +99,9 @@ export default function Add() {
             <div className="Label">Duration (seconds)</div>
             <input type="number" id="duration" value={duration} onChange={(e) => setDuration(e.target.value)} min={1} max={20} placeholder="Duration of each watering"></input>
             <div className="flex justify-end">
-                <button onClick={() => router.push("/")} className="BackButton mr-2">Cancel</button>
-                <button onClick={(e) => onSubmitClick(e)}>Add plant</button>
+                <button onClick={() => router.push("/")} className="ActionButton BackButton mr-2">Cancel</button>
+                <button onClick={(e) => onSubmitClick(e)} className="ActionButton">Add plant</button>
             </div>
         </div>
-    </body>
+    </div>
 }
