@@ -48,7 +48,8 @@ export async function addFirestore(name, species, interval, time, ampm, duration
         species: species,
         interval: interval,
         last_watered: lastWatered.toISO(),
-        duration: duration
+        duration: duration,
+        active: true
         });
         added = true;
     } catch (error) {
@@ -74,7 +75,7 @@ export default function Add() {
         // if successfully added, give a success alert and return to the main page
         if (added) { 
             alert("Successfully added " + name);
-            router.push("/");
+            router.push("/my-plants");
         }
     }
 

@@ -72,3 +72,30 @@ input, select {
   border-color: black;
   background-color: rgb(235,235,235);
 }
+
+.Icon {
+  color: rgb(115, 115, 115);
+  font-size: 10rem;
+}
+
+.Card {
+  transition: box-shadow 0.25s ease-in-out, transform 0.25s ease-in-out;
+}
+
+.Card:hover {
+  --tw-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  transform: scale(1.01);
+}
+
+@media screen and (max-width: 1350px) {
+  .Grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .Grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
