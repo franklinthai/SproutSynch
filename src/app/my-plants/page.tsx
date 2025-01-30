@@ -8,12 +8,10 @@ import ResponsiveAppBar from "../navbar";
 import plantIcon from './../../../assets/plantIcon.png';
 import Image from 'next/image';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
-import FormGroup from "@mui/material/FormGroup";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import createTheme from "@mui/material/styles/createTheme";
 import { Box, Modal, ThemeProvider } from "@mui/material";
-import RecipeReviewCard from "./editpopup";
+import EditPopup from "./editpopup";
 
 export async function fetchFirestore() {
     const querySnapshot = await getDocs(query(collection(db, "plants"), orderBy("name", "asc")));
@@ -56,53 +54,64 @@ export default function MyPlants() {
     }, []);
 
     const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
-            setActive(e.target.checked);
-            // update the database
-            await updateFirestore(e.target.value, e.target.checked);
-        }
+        setActive(e.target.checked);
+        await updateFirestore(e.target.value, e.target.checked);
+    };
 
-    return <div className="flex flex-col items-center">
-        <ResponsiveAppBar></ResponsiveAppBar>
-        <h1 className="mt-12 mb-4">My Plants</h1>
-       
-        <div className="Grid w-100 grid grid-cols-3 gap-12 my-12">
-            {plantArr.map((plant, plantNum) => (
-                <div key={plant.id} className="Card w-96 h-64 rounded-xl bg-white shadow-lg" onClick={() => setSelectedPlant(plant)}>
-                    <Image src={plantIcon} alt="PlantIcon" className="h-1/2 object-cover"/>
-                    <div className="Label pl-4 flex justify-between items-center">{plant.name}
-                        <PowerSettingsNewIcon className="Icon mr-0 ml-auto" fontSize="small"/>
-                        <ThemeProvider theme={theme}>
-                            <Switch defaultChecked value={plant.id} onChange={toggleActive}/>
-                        </ThemeProvider>
-                    </div>
-                    <p className="pl-4">{plant.species == "" ? "" : "Species: " + plant.species}</p>
-                    <p className="pl-4">Next Watering: {DateTime.fromISO(plant.last_watered).plus({days: plant.interval}).toLocaleString({month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'})}</p>
-                    <Modal
-                        open={!!selectedPlant}
-                        onClose={handleClose}
-                        aria-labelledby="plant-details-modal"
-                        aria-describedby="plant-details-description"
+    return (
+        <div className="flex flex-col items-center">
+            <ResponsiveAppBar />
+            <h1 className="mt-12 mb-4">My Plants</h1>
+           
+            <div className="Grid w-100 grid grid-cols-3 gap-12 my-12">
+                {plantArr.map((plant) => (
+                    <div 
+                        key={plant.id} 
+                        className="Card w-96 h-64 rounded-xl bg-white shadow-lg"
+                        onClick={() => setSelectedPlant(plant)} // Open modal when clicked
                     >
-                        <Box
-                        sx={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
-                            width: "50%",
-                            bgcolor: "background.paper",
-                            boxShadow: 24,
-                            p: 4,
-                            borderRadius: 2,
-                        }}
-                        >
-                        {selectedPlant && (
-                            <RecipeReviewCard plantId={selectedPlant.name} />
-                        )}
-                        </Box>
-                    </Modal>
-                </div>
-            ))}
+                        <Image src={plantIcon} alt="PlantIcon" className="h-1/2 object-cover"/>
+                        <div className="Label pl-4 flex justify-between items-center">
+                            {plant.name}
+                            <PowerSettingsNewIcon className="Icon mr-0 ml-auto" fontSize="small"/>
+                            <ThemeProvider theme={theme}>
+                                <Switch defaultChecked value={plant.id} onChange={toggleActive} />
+                            </ThemeProvider>
+                        </div>
+                        <p className="pl-4">{plant.species ? `Species: ${plant.species}` : ""}</p>
+                        <p className="pl-4">
+                            Next Watering:{" "}
+                            {DateTime.fromISO(plant.last_watered)
+                                .plus({ days: plant.interval })
+                                .toLocaleString({ month: "short", day: "numeric", hour: "numeric", minute: "numeric" })}
+                        </p>
+                    </div>
+                ))}
+            </div>
+            <Modal
+                open={!!selectedPlant} // Only open when a plant is selected
+                onClose={handleClose}
+                aria-labelledby="plant-details-modal"
+                aria-describedby="plant-details-description"
+            >
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "50%",
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                    }}
+                >
+                    {selectedPlant && (
+                        <EditPopup plantId={selectedPlant.name} handleClose={handleClose} />
+                    )}
+                </Box>
+            </Modal>
         </div>
-    </div>
+    );
 }

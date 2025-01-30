@@ -1,58 +1,62 @@
-"use client"
-import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardMedia from '@mui/material/CardMedia';
-import CardContent from '@mui/material/CardContent';
-import IconButton, { IconButtonProps } from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import plantIcon from './../../../assets/plantIcon.png';
-import CloseIcon from '@mui/icons-material/Close';
+"use client";
 import React, { useEffect, useState } from "react";
-import EditIcon from '@mui/icons-material/Edit';
-import { getDocs, collection, doc, updateDoc, orderBy, query, where } from "firebase/firestore";
-const { DateTime } = require("luxon");
+import Card from "@mui/material/Card";
+import CardHeader from "@mui/material/CardHeader";
+import CardMedia from "@mui/material/CardMedia";
+import CardContent from "@mui/material/CardContent";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import plantIcon from "./../../../assets/plantIcon.png";
+import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 
 const titleStyle = {
-  color: 'text.primary',
-  fontFamily: 'Open Sans, sans-serif',
+  color: "text.primary",
+  fontFamily: "Open Sans, sans-serif",
   fontWeight: 700,
-  fontSize: '18px',
-  lineHeight: '30px',
+  fontSize: "18px",
+  lineHeight: "30px",
 };
 
 const textStyle = {
-  color: 'text.secondary',
-  fontFamily: 'Open Sans, sans-serif',
+  color: "text.secondary",
+  fontFamily: "Open Sans, sans-serif",
   fontWeight: 400,
-  fontSize: '18px',
-  lineHeight: '30px',
-  marginTop: '4px', // Space between title and text
+  fontSize: "18px",
+  lineHeight: "30px",
+  marginTop: "4px",
 };
 
 const gridItemStyle = {
-  marginBottom: '16px',
+  marginBottom: "16px",
 };
 
-interface RecipeReviewCardProps {
+interface EditPopupProps {
   plantId: string;
+  handleClose: () => void;
 }
 
 export async function fetchPlantByName(name) {
-  
   const plantQuery = query(collection(db, "plants"), where("name", "==", name));
   const querySnapshot = await getDocs(plantQuery);
-  const plant = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   return plant[0]; // Return the first matching plant
-  
 }
 
-export default function RecipeReviewCard({ plantId }: RecipeReviewCardProps) {
+export default function EditPopup({ plantId, handleClose }: EditPopupProps) {
   const [plant, setPlant] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedPlant, setUpdatedPlant] = useState(null);
+
   useEffect(() => {
     async function fetchData() {
-        const data = await fetchPlantByName(plantId); // Fetch plant data by ID or name
-        setPlant(data);
+      const data = await fetchPlantByName(plantId);
+      setPlant(data);
+      setUpdatedPlant(data); // Initialize updatedPlant with fetched data
     }
 
     if (plantId) {
@@ -60,8 +64,46 @@ export default function RecipeReviewCard({ plantId }: RecipeReviewCardProps) {
     }
   }, [plantId]);
 
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      // Switch to editing mode, initialize fields if not already done
+      setUpdatedPlant({ ...plant });
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSave = async () => {
+    if (updatedPlant) {
+      const plantDoc = doc(db, "plants", updatedPlant.id);
+      await updateDoc(plantDoc, {
+        species: updatedPlant.species,
+        //description: updatedPlant.description,
+        duration: updatedPlant.duration,
+        //soil_moisture: updatedPlant.soil_moisture,
+      });
+      setPlant(updatedPlant); // Update the displayed data
+      setIsEditing(false); // Exit editing mode
+    }
+  };
+
+  const handleChange = (field, value) => {
+    setUpdatedPlant((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const calculateNextWatering = () => {
+    if (plant?.last_watered && plant?.interval) {
+      const nextWateringDate = new Date(
+        new Date(plant.last_watered).getTime() + plant.interval * 24 * 60 * 60 * 1000
+      );
+      return nextWateringDate.toLocaleDateString();
+    }
+    return "Unknown";
+  };
+
   if (!plant) {
-    // Render a loading or fallback message if plant data is not yet available
     return <p>Loading plant details...</p>;
   }
 
@@ -69,68 +111,101 @@ export default function RecipeReviewCard({ plantId }: RecipeReviewCardProps) {
     <Card sx={{ maxWidth: 600 }}>
       <CardHeader
         action={
-          <IconButton aria-label="close">
+          <IconButton onClick={handleClose} aria-label="close">
             <CloseIcon />
           </IconButton>
         }
         title={
-          <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" component="div" sx={{ display: "flex", alignItems: "center" }}>
             {plant.name}
             <IconButton
-              aria-label="edit"
+              aria-label={isEditing ? "save" : "edit"}
               size="small"
-              sx={{ ml: 1 }} // Add spacing between the title and the icon
+              sx={{ ml: 1 }}
+              onClick={isEditing ? handleSave : handleEditToggle}
             >
-              <EditIcon fontSize="small" />
+              {isEditing ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
             </IconButton>
           </Typography>
         }
       />
-      <CardMedia
-        component="img"
-        height="194"
-        image={plantIcon.src}
-        alt="Plant Icon"
-      />
-
+      <CardMedia component="img" height="194" image={plantIcon.src} alt="Plant Icon" />
       <CardContent>
-        <Typography variant="h6" sx={{ ...titleStyle, fontSize: '20px', marginBottom: 1 }}>
+        <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px", marginBottom: 1 }}>
           Species
         </Typography>
-        <Typography variant="body1" sx={{ ...textStyle, fontSize: '20px', marginBottom: 3 }}>
-          {plant?.species || 'Unknown'}
-        </Typography>
+        {isEditing ? (
+          <TextField
+            fullWidth
+            variant="outlined"
+            value={updatedPlant?.species || ""}
+            onChange={(e) => handleChange("species", e.target.value)}
+          />
+        ) : (
+          <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px", marginBottom: 3 }}>
+            {plant.species || "Unknown"}
+          </Typography>
+        )}
 
-        <Typography variant="h6" sx={{ ...titleStyle, fontSize: '20px', marginBottom: 1 }}>
+        <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px", marginBottom: 1 }}>
           Description
         </Typography>
-        <Typography variant="body1" sx={{ ...textStyle, fontSize: '20px', marginBottom: 3 }}>
-          A beautiful tropical plant known for its distinctive split leaves.
-        </Typography>
+        {isEditing ? (
+          <TextField
+            fullWidth
+            variant="outlined"
+            value={updatedPlant?.description || ""}
+            onChange={(e) => handleChange("description", e.target.value)}
+          />
+        ) : (
+          <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px", marginBottom: 3 }}>
+            {plant.description || "A beautiful tropical plant known for its distinctive split leaves."}
+          </Typography>
+        )}
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)', // Two equal columns
-            gap: '16px', // Space between items
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "16px",
           }}
         >
           <div style={gridItemStyle}>
             <Typography variant="body2" sx={titleStyle}>
               Duration
             </Typography>
-            <Typography variant="body1" sx={textStyle}>
-              10 seconds
-            </Typography>
+            {isEditing ? (
+              <TextField
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={updatedPlant?.duration || ""}
+                onChange={(e) => handleChange("duration", parseInt(e.target.value))}
+              />
+            ) : (
+              <Typography variant="body1" sx={textStyle}>
+                {plant.duration} seconds
+              </Typography>
+            )}
           </div>
 
           <div style={gridItemStyle}>
             <Typography variant="body2" sx={titleStyle}>
               Soil Moisture
             </Typography>
-            <Typography variant="body1" sx={textStyle}>
-              45%
-            </Typography>
+            {isEditing ? (
+              <TextField
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={updatedPlant?.soil_moisture || ""}
+                onChange={(e) => handleChange("soil_moisture", parseInt(e.target.value))}
+              />
+            ) : (
+              <Typography variant="body1" sx={textStyle}>
+                {plant.soil_moisture || 45}%
+              </Typography>
+            )}
           </div>
 
           <div style={gridItemStyle}>
@@ -138,9 +213,7 @@ export default function RecipeReviewCard({ plantId }: RecipeReviewCardProps) {
               Last Watered
             </Typography>
             <Typography variant="body1" sx={textStyle}>
-              {plant?.last_watered
-                ? new Date(plant.last_watered).toLocaleDateString()
-                : 'Unknown'}
+              {new Date(plant.last_watered).toLocaleDateString()}
             </Typography>
           </div>
 
@@ -149,12 +222,7 @@ export default function RecipeReviewCard({ plantId }: RecipeReviewCardProps) {
               Next Watering
             </Typography>
             <Typography variant="body1" sx={textStyle}>
-              {plant?.interval && plant?.last_watered
-                ? new Date(
-                    new Date(plant.last_watered).getTime() +
-                      plant.interval * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString()
-                : 'Unknown'}
+              {calculateNextWatering()}
             </Typography>
           </div>
         </div>
