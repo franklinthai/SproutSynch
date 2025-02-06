@@ -108,7 +108,7 @@ export default function EditPopup({ plantId, handleClose }: EditPopupProps) {
   }
 
   return (
-    <Card sx={{ maxWidth: 600 }}>
+    <Card sx={{ maxWidth: 800 }}>
       <CardHeader
         action={
           <IconButton onClick={handleClose} aria-label="close">
