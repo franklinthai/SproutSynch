@@ -99,3 +99,25 @@ input, select {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
+
+.AccountButton {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  margin-right: 8px;
+  color: '#50734A';
+  display: block;
+  text-decoration: none;
+  font-family:'Open Sans';
+  font-size: 0.75rem;
+  padding: '5px 9px';
+  min-width: auto;
+}
+
+.DropdownItem {
+  color: '#50734A';
+  text-decoration: none;
+  font-family:'Open Sans';
+  font-size: 0.75rem;
+  padding: '5px 9px';
+  margin-left: auto;
+}
