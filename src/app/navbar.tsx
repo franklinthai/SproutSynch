@@ -9,7 +9,10 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import GrassIcon from '@mui/icons-material/Grass';
 import { useRouter } from 'next/navigation'; 
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebaseconfig.js';
+import { signOut } from "firebase/auth";
 
 const pages = [
   { name: 'Home', path: '/', perm: true },
@@ -21,15 +24,21 @@ const pages = [
 //  TODO ADD WHITE HIGHLIGITNG WHEN ON A SPECIFIC PAGE
 function ResponsiveAppBar() {
   const router = useRouter();
-  // auth0 user
-  const { user, error, isLoading } = useUser();
-  // controls account dropdown
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  // indicates whether account dropdown is open or closed
-  const open = Boolean(anchorEl);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // controls account dropdown
+  const open = Boolean(anchorEl); // indicates whether account dropdown is open or closed
+  const [uid, setUid] = useState(undefined); // firebase user
+  const [email, setEmail] = useState("Authentication Error");
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>{error.message}</div>;
+  useEffect(()=>{
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+        setEmail(user.email);
+      } else {
+        console.log("user is logged out")
+      }
+    });
+  }, []);
 
   const handleNavigation = (path) => {
     router.push(path); // Navigate to the selected page
@@ -48,8 +57,13 @@ function ResponsiveAppBar() {
 
   // when Log out button is clicked
   const handleLogout = () => {
-    handleAccountClose;
-    handleNavigation('/api/auth/logout');
+    signOut(auth).then(() => {
+      setUid(undefined);
+      setEmail("Authentication Error");
+      handleNavigation("/");    
+    }).catch((error) => {
+      alert(error);
+    });
   }
 
   // closes the dropdown
@@ -113,7 +127,7 @@ function ResponsiveAppBar() {
           {/* Navigation links as Buttons */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 4 }}>
             {pages.map((page) => (
-              page.perm === false && user === undefined 
+              page.perm === false && uid === undefined 
               ? 
               null
               :
@@ -136,11 +150,11 @@ function ResponsiveAppBar() {
               </Button>
             ))}
           </Box>
-          {user === undefined 
+          {uid === undefined 
           ? 
           <Button
             key='Account'
-            onClick={() => handleNavigation('/api/auth/login')}
+            onClick={() => handleNavigation('/login')}
             sx={{
               my: 2,
               color: '#50734A',
@@ -175,7 +189,7 @@ function ResponsiveAppBar() {
                 mr: 1,
               }}
             >
-              {user.name === undefined ? 'Authentication Error' : user.name}
+              {email}
             </Button>
             <Menu
               anchorOrigin={{
@@ -195,16 +209,9 @@ function ResponsiveAppBar() {
               }}
             >
               <MenuItem className="DropdownItem" sx={{ml: 'auto', justifyContent: 'flex-end', fontSize: '0.9rem', fontFamily: 'Open Sans'}} onClick={handleProfile}>Profile</MenuItem>
-              <MenuItem className="DropdownItem" sx={{justifyContent: 'flex-end', fontSize: '0.9rem', ml: 'auto'}} onClick={handleLogout}>Logout</MenuItem>
+              <MenuItem className="DropdownItem" sx={{justifyContent: 'flex-end', fontSize: '0.9rem', ml: 'auto'}} onClick={handleLogout}>Log Out</MenuItem>
             </Menu>
           </>
-          // <Dropdown>
-          //   <MenuButton className='text-red-50'>{user === undefined ? 'Authentication Error' : user.name}</MenuButton>
-          //   <Menu slotProps={{ listbox: { className: 'DropdownItem' } }}>
-          //     <MenuItem onClick={() => handleNavigation('/profile')}>Profile</MenuItem>
-          //     <MenuItem onClick={() => handleNavigation('/api/auth/logout')}>Log out</MenuItem>
-          //   </Menu>
-          // </Dropdown>
           }
         </Toolbar>
       </Container>

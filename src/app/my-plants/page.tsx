@@ -1,6 +1,6 @@
 "use client"
 import { useRouter } from "next/navigation";
-import { db } from "../firebaseconfig";
+import { auth, db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
 import { getDocs, collection, doc, updateDoc, orderBy, query } from "firebase/firestore";
 const { DateTime } = require("luxon");
@@ -12,19 +12,22 @@ import Switch from "@mui/material/Switch";
 import createTheme from "@mui/material/styles/createTheme";
 import { Box, Modal, ThemeProvider } from "@mui/material";
 import EditPopup from "./editpopup";
+import { onAuthStateChanged } from "firebase/auth";
 
-export async function fetchFirestore() {
-    const querySnapshot = await getDocs(query(collection(db, "plants"), orderBy("name", "asc")));
+export async function fetchFirestore(uid) {
+    console.log("querying users/" + uid + "/plants");
+    const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
     const plantArr = [];
     querySnapshot.forEach((doc) => {
         plantArr.push({ id: doc.id, ...doc.data()});
     });
+    console.log("plantArr: " + plantArr);
     return plantArr;
 }
 
-export async function updateFirestore(id, active) {
+export async function updateFirestore(uid, id, active) {
     try {
-        await updateDoc(doc(db, "plants", id), { active: active })
+        await updateDoc(doc(db, "users", uid, "plants", id), { active: active })
     } catch (error) {
         alert(error);
     }
@@ -44,25 +47,49 @@ export default function MyPlants() {
     const [active, setActive] = useState(true);
     const [selectedPlant, setSelectedPlant] = useState(null); // State to track selected plant
     const handleClose = () => setSelectedPlant(null); // Close the modal
+    const [uid, setUid] = useState(undefined);
+    
+    // useEffect(() => {
+    //     async function fetchData() {
+    //         const data = await fetchFirestore(uid);
+    //         setPlantArr(data);
+    //     }
+    //     fetchData();
+    // }, []);
 
-    useEffect(() => {
-        async function fetchData() {
-            const data = await fetchFirestore();
+    useEffect(()=>{
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUid(user.uid);
+                fetchData(user.uid);
+                console.log("setting uid to " + user.uid);
+                console.log("uid is now " + uid);
+            } else {
+                router.push("/");
+            }
+        });
+        console.log("fetching data with uid = " + uid);
+
+        async function fetchData(userid) {
+            const data = await fetchFirestore(userid);
             setPlantArr(data);
         }
-        fetchData();
+        // fetchData();
     }, []);
 
     const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setActive(e.target.checked);
-        await updateFirestore(e.target.value, e.target.checked);
+        await updateFirestore(uid, e.target.value, e.target.checked);
     };
 
-    return (
-        <div className="flex flex-col items-center">
+    console.log("before return uid is " + uid);
+    return <div className="flex flex-col items-center">
             <ResponsiveAppBar />
-            <h1 className="mt-12 mb-4">My Plants</h1>
-           
+            {uid === undefined
+            ?
+            <p className="mt-8">You must sign in to access this feature.</p>
+            :
+            <><h1 className="mt-12 mb-4">My Plants</h1>
             <div className="Grid w-100 grid grid-cols-3 gap-12 my-12">
                 {plantArr.map((plant) => (
                     <div 
@@ -103,15 +130,14 @@ export default function MyPlants() {
                         width: "50%",
                         bgcolor: "background.paper",
                         boxShadow: 24,
-                        p: 4,
                         borderRadius: 2,
                     }}
+                    style={{ border: "none"}}
                 >
                     {selectedPlant && (
-                        <EditPopup plantId={selectedPlant.name} handleClose={handleClose} />
+                        <EditPopup plantId={selectedPlant.name} uid={uid} handleClose={handleClose} />
                     )}
                 </Box>
-            </Modal>
+            </Modal></>}
         </div>
-    );
 }

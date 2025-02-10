@@ -37,24 +37,25 @@ const gridItemStyle = {
 
 interface EditPopupProps {
   plantId: string;
+  uid: string;
   handleClose: () => void;
 }
 
-export async function fetchPlantByName(name) {
-  const plantQuery = query(collection(db, "plants"), where("name", "==", name));
+export async function fetchPlantByName(name, uid) {
+  const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
   const querySnapshot = await getDocs(plantQuery);
   const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   return plant[0]; // Return the first matching plant
 }
 
-export default function EditPopup({ plantId, handleClose }: EditPopupProps) {
+export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps) {
   const [plant, setPlant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedPlant, setUpdatedPlant] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
-      const data = await fetchPlantByName(plantId);
+      const data = await fetchPlantByName(plantId, uid);
       setPlant(data);
       setUpdatedPlant(data); // Initialize updatedPlant with fetched data
     }
@@ -74,7 +75,7 @@ export default function EditPopup({ plantId, handleClose }: EditPopupProps) {
 
   const handleSave = async () => {
     if (updatedPlant) {
-      const plantDoc = doc(db, "plants", updatedPlant.id);
+      const plantDoc = doc(db, "users", uid, "plants", updatedPlant.id);
       await updateDoc(plantDoc, {
         species: updatedPlant.species,
         //description: updatedPlant.description,
@@ -108,7 +109,7 @@ export default function EditPopup({ plantId, handleClose }: EditPopupProps) {
   }
 
   return (
-    <Card sx={{ maxWidth: 800 }}>
+    <Card sx={{ maxWidth: "100%" }} style={{ border: "none"}}>
       <CardHeader
         action={
           <IconButton onClick={handleClose} aria-label="close">
