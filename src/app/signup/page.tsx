@@ -1,10 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebaseconfig.js";
 import ResponsiveAppBar from "../navbar";
 import Link from 'next/link.js';
+import GoogleIcon from '@mui/icons-material/Google';
+
+const provider = new GoogleAuthProvider();
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -40,6 +43,17 @@ const SignUp = () => {
     event.preventDefault();
   };
 
+  const onGoogleClick = event => {
+    signInWithPopup(auth, provider)
+    .then(authUser => {
+      router.push("/");
+    })
+    .catch(error => {
+      alert(error);
+    });
+    event.preventDefault();
+  }
+
   return <div className="flex flex-col items-center">
         <ResponsiveAppBar></ResponsiveAppBar>
         {uid === undefined
@@ -52,10 +66,12 @@ const SignUp = () => {
             <input id="passwordone" value={passwordOne} onChange={(e) => setPasswordOne(e.target.value)} placeholder="Enter password"></input>
             <div className="Label">Confirm Password</div>
             <input id="passwordone" value={passwordTwo} onChange={(e) => setPasswordTwo(e.target.value)} placeholder="Enter password"></input>
-            <p className='mt-2'>Already have an account? <Link href="/login" className='underline'>Log in</Link></p>
-            <div className="flex justify-end">
-                <button onClick={(e) => onSubmitClick(e)} className="ActionButton">Sign Up</button>
+            <button onClick={(e) => onSubmitClick(e)} className="ActionButton" style={{width: "100%"}}>Sign Up</button>
+            <p className='mt-14 text-center'>Or sign up with</p>
+            <div className='flex justify-center'>
+              <button className='text-center ActionButton BackButton' style={{width: "4.5rem"}} onClick={onGoogleClick}><GoogleIcon/></button>
             </div>
+            <p className='mt-10 text-center'>Already have an account? <Link href="/login" className='underline'>Log in</Link></p>
         </div></>
         :
         <p className='mt-8'>You are already logged in. To access this feature, please log out first.</p>}

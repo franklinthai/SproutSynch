@@ -40,10 +40,10 @@ input, select {
   padding: 0.5rem; 
   margin-top: 1.5rem; 
   border-radius: 1rem; 
-  border-width: 2px; 
+  border-width: 1px; 
   width: 8rem; 
   font-size: 1.125rem;
-  line-height: 1.75rem; 
+  line-height: 1.5rem; 
   color: #ffffff;
   border-color: rgb(80, 115, 74); 
   background-color: rgb(80, 115, 74);
@@ -64,7 +64,7 @@ input, select {
 
 .BackButton {
   color: rgb(64, 64, 64);
-  border-color: rgb(64, 64, 64); 
+  border-color: rgb(115, 115, 115); 
   background-color: white;
 }
 

@@ -1,10 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebaseconfig.js";
 import ResponsiveAppBar from "../navbar";
 import Link from 'next/link.js';
+import GoogleIcon from '@mui/icons-material/Google';
+
+const provider = new GoogleAuthProvider();
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -14,11 +17,11 @@ const SignUp = () => {
     
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
-        if (user) {
-          router.push("/");
-        } else {
-          setUid(undefined);
-        }
+      if (user) {
+        router.push("/");
+      } else {
+        setUid(undefined);
+      }
     });
   }, []);
 
@@ -37,6 +40,17 @@ const SignUp = () => {
     };
   }   
 
+  const onGoogleClick = event => {
+    signInWithPopup(auth, provider)
+    .then(authUser => {
+      router.push("/");
+    })
+    .catch(error => {
+      alert(error);
+    });
+    event.preventDefault();
+  }
+
   return <div className="flex flex-col items-center">
         <ResponsiveAppBar></ResponsiveAppBar>
         {uid === undefined 
@@ -46,11 +60,13 @@ const SignUp = () => {
             <div className="Label">Email</div>
             <input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email"></input>
             <div className="Label">Password</div>
-            <input id="passwordone" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password"></input>
-            <p className='mt-2'>Don't have an account yet? <Link href="/signup" className='underline'>Sign Up</Link></p>
-            <div className="flex justify-end">
-                <button onClick={(e) => onSubmitClick(e)} className="ActionButton">Log In</button>
+            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password"></input>
+            <button onClick={(e) => onSubmitClick(e)} className="ActionButton" style={{width: "100%"}}>Log In</button>
+            <p className='mt-14 text-center'>Or continue with</p>
+            <div className='flex justify-center'>
+              <button className='text-center ActionButton BackButton' style={{width: "4.5rem"}} onClick={onGoogleClick}><GoogleIcon/></button>
             </div>
+            <p className='mt-10 text-center'>Don't have an account yet? <Link href="/signup" className='underline'>Sign Up</Link></p>
         </div></>
         :
         <p className='mt-8'>You are already logged in. To access this feature, please log out first.</p>}
