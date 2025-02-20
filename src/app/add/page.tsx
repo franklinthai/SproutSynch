@@ -1,7 +1,7 @@
 "use client"
 import { useRouter } from "next/navigation";
 import { db } from "../firebaseconfig";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
@@ -65,12 +65,21 @@ export default function Add() {
     const router = useRouter();
     const [name, setName] = useState("");
     const [species, setSpecies] = useState("");
+    const [description, setDescription] = useState("");
     const [interval, setInterval] = useState("");
     const [time, setTime] = useState("");
     const [ampm, setAmpm] = useState("pm");
     const [duration, setDuration] = useState("");
     const [uid, setUid] = useState(undefined);
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const openFileExplorer = () => {
+      if (fileInputRef.current) {
+        fileInputRef.current.click(); // Programmatically trigger the file input
+      }
+    };
+    
     useEffect(()=>{
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -103,6 +112,18 @@ export default function Add() {
         <div className="w-1/3">
             <div className="Label">Name</div>
             <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter plant name"></input>
+            <div className="Label">Description</div>
+            <input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add details about your plant, like sunlight needs or quirks"></input>
+            <div className="Label">Plant Photo</div>
+            <button onClick={openFileExplorer}>Open File Explorer</button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={(e) => console.log(e.target.files)}
+                multiple 
+                {...({ webkitdirectory: "true", directory: "true" } as any)} 
+            />
             <div className="Label">Species</div>
             <input id="species" value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="Enter plant species (optional)"></input>
             <div className="Label">Watering Interval (days)</div>
