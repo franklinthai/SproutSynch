@@ -5,10 +5,13 @@ import React, { useEffect, useState } from "react";
 import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from '../firebaseconfig.js';
+
 
 let added = false;
 
-export async function addFirestore(name, species, interval, time, ampm, duration) {
+export async function addFirestore(uid, name, species, interval, time, ampm, duration) {
     try {
         // double check that the time interval and duration numbers are valid
         if (name === "") throw new Error("Name is required");
@@ -43,13 +46,13 @@ export async function addFirestore(name, species, interval, time, ampm, duration
         if (now.hour < time) lastWatered = lastWatered.minus({days: 1});
         // add to the database in the plants collection. lastWatered is translated to ISO format
         // since Firebase doesn't know what a luxon DateTime is
-        const docRef = await addDoc(collection(db, "plants"), {
-        name: name,
-        species: species,
-        interval: interval,
-        last_watered: lastWatered.toISO(),
-        duration: duration,
-        active: true
+        const docRef = await addDoc(collection(db, "users", uid, "plants"), {
+            name: name,
+            species: species,
+            interval: interval,
+            last_watered: lastWatered.toISO(),
+            duration: duration,
+            active: true
         });
         added = true;
     } catch (error) {
@@ -66,12 +69,23 @@ export default function Add() {
     const [time, setTime] = useState("");
     const [ampm, setAmpm] = useState("pm");
     const [duration, setDuration] = useState("");
+    const [uid, setUid] = useState(undefined);
+
+    useEffect(()=>{
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUid(user.uid);
+            } else {
+                router.push("/");
+            }
+        });
+    }, []);
 
     const onSubmitClick = async (e) => {
         e.preventDefault();
         // add to the database
         added = false;
-        await addFirestore(name, species, interval, time, ampm, duration);
+        await addFirestore(uid, name, species, interval, time, ampm, duration);
         // if successfully added, give a success alert and return to the main page
         if (added) { 
             alert("Successfully added " + name);
@@ -81,7 +95,11 @@ export default function Add() {
 
     return <div className="flex flex-col items-center">
         <ResponsiveAppBar></ResponsiveAppBar>
-        <h1 className="mt-12 mb-4">Customize your plant</h1>
+        {uid === undefined 
+        ? 
+        <p className="mt-8">You must sign in to access this feature.</p>
+        :
+        <><h1 className="mt-12 mb-4">Customize your plant</h1>
         <div className="w-1/3">
             <div className="Label">Name</div>
             <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter plant name"></input>
@@ -103,6 +121,6 @@ export default function Add() {
                 <button onClick={() => router.push("/")} className="ActionButton BackButton mr-2">Cancel</button>
                 <button onClick={(e) => onSubmitClick(e)} className="ActionButton">Add plant</button>
             </div>
-        </div>
+        </div></>}
     </div>
 }
