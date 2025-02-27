@@ -1,0 +1,1 @@
+init placeholder folder setting up redis optimizations for preventing firebase fetch redundancies
