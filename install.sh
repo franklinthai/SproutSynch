@@ -1,4 +1,5 @@
 #!/bin/bash
+# TODO: might consider setuptools/poetry, but we will see 
 # install.sh, naive bash script for setting up airflow, redis, and firestore connections
 
 # Install system dependencies
