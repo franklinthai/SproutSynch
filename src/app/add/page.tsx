@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import { useRouter } from "next/navigation";
 import { db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
@@ -49,14 +49,15 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
             interval: interval,
             last_watered: lastWatered.toISO(),
             duration: duration,
-            active: true
+            active: true,
+            description: ""
         });
         added = true;
     } catch (error) {
-      alert(error);
-      added = false;
+        alert(error);
+        added = false;
     } 
-  }
+}
 
 export default function Add() {
     const router = useRouter();

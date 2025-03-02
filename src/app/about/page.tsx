@@ -1,4 +1,3 @@
-'use client'
 import ResponsiveAppBar from "../navbar"
 
 export default function About() {
