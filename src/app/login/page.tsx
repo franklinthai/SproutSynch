@@ -62,6 +62,7 @@ const SignUp = () => {
             <div className="Label">Password</div>
             <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password"></input>
             <button onClick={(e) => onSubmitClick(e)} className="ActionButton" style={{width: "100%"}}>Log In</button>
+            <p className='mt-2'><Link href="/resetpassword" className='underline'>Forgot password?</Link></p>
             <p className='mt-14 text-center'>Or continue with</p>
             <div className='flex justify-center'>
               <button className='text-center ActionButton BackButton' style={{width: "4.5rem"}} onClick={onGoogleClick}><GoogleIcon/></button>
