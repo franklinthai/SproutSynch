@@ -28,7 +28,7 @@ const SignUp = () => {
 
   const onSubmitClick = event => {
     if (email.length === 0) alert("You must enter an email");
-    else if (passwordOne.length < 8) alert("Password must be at least 8 characters");
+    else if (passwordOne.length < 6) alert("Password must be at least 6 characters");
     else if (passwordOne === passwordTwo) {
       createUserWithEmailAndPassword(auth, email, passwordOne)
       .then(authUser => {
