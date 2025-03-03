@@ -46,6 +46,7 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
         if (now.hour < time) lastWatered = lastWatered.minus({days: 1});
         // add to the database in the plants collection. lastWatered is translated to ISO format
         // since Firebase doesn't know what a luxon DateTime is
+        lastWatered = lastWatered.setZone('UTC');
         const docRef = await addDoc(collection(db, "users", uid, "plants"), {
             name: name,
             species: species,
