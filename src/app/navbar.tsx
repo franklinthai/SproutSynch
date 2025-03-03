@@ -12,7 +12,7 @@ import GrassIcon from '@mui/icons-material/Grass';
 import { useRouter } from 'next/navigation'; 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebaseconfig.js';
+import { auth } from '../utils/firebaseconfig.js';
 import { signOut } from "firebase/auth";
 
 const pages = [

@@ -1,6 +1,6 @@
 "use client"
 import { useRouter } from "next/navigation";
-import { auth, db } from "../firebaseconfig";
+import { auth, db } from "../../utils/firebaseconfig";
 import React, { useEffect, useState } from "react";
 import { getDocs, collection, doc, updateDoc, orderBy, query } from "firebase/firestore";
 const { DateTime } = require("luxon");
