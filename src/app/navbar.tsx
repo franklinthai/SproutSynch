@@ -1,3 +1,4 @@
+'use client'
 import * as React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -27,12 +28,16 @@ function ResponsiveAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // controls account dropdown
   const open = Boolean(anchorEl); // indicates whether account dropdown is open or closed
   const [uid, setUid] = useState(undefined); // firebase user
-  const [email, setEmail] = useState("Authentication Error");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
       if (user) {
         setUid(user.uid);
+        setDisplayName(user.displayName);      
+        console.log("display name: '" + displayName + "'");
+        console.log(typeof(displayName))
         setEmail(user.email);
       } else {
         console.log("user is logged out")
@@ -46,19 +51,21 @@ function ResponsiveAppBar() {
 
   // when account dropdown is clicked
   const handleAccountClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    console.log("display name: '" + displayName + "' type of " + typeof(displayName));
     setAnchorEl(event.currentTarget);
   };
 
   // when Profile button is clicked 
   const handleProfile = () => {
     handleAccountClose;
-    handleNavigation('/profile');
+    handleNavigation('/account');
   }
 
   // when Log out button is clicked
   const handleLogout = () => {
     signOut(auth).then(() => {
       setUid(undefined);
+      setDisplayName("Authentication Error");
       setEmail("Authentication Error");
       handleNavigation("/");    
     }).catch((error) => {
@@ -70,6 +77,7 @@ function ResponsiveAppBar() {
   const handleAccountClose = () => {
     setAnchorEl(null);
   };
+
 
   return (
     <AppBar position="static" sx={{ backgroundColor: '#EAF2E0' }}>
@@ -189,7 +197,7 @@ function ResponsiveAppBar() {
                 mr: 1,
               }}
             >
-              {email}
+              {displayName === null || displayName === "" ? email : displayName}
             </Button>
             <Menu
               anchorOrigin={{
@@ -208,7 +216,7 @@ function ResponsiveAppBar() {
                 'aria-labelledby': 'basic-button',
               }}
             >
-              <MenuItem className="DropdownItem" sx={{ml: 'auto', justifyContent: 'flex-end', fontSize: '0.9rem', fontFamily: 'Open Sans'}} onClick={handleProfile}>Profile</MenuItem>
+              <MenuItem className="DropdownItem" sx={{ml: 'auto', justifyContent: 'flex-end', fontSize: '0.9rem', fontFamily: 'Open Sans'}} onClick={handleProfile}>Account</MenuItem>
               <MenuItem className="DropdownItem" sx={{justifyContent: 'flex-end', fontSize: '0.9rem', ml: 'auto'}} onClick={handleLogout}>Log Out</MenuItem>
             </Menu>
           </>

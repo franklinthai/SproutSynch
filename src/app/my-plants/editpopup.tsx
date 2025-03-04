@@ -78,7 +78,7 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
       const plantDoc = doc(db, "users", uid, "plants", updatedPlant.id);
       await updateDoc(plantDoc, {
         species: updatedPlant.species,
-        //description: updatedPlant.description,
+        description: updatedPlant.description,
         duration: updatedPlant.duration,
         //soil_moisture: updatedPlant.soil_moisture,
       });
@@ -160,7 +160,7 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
           />
         ) : (
           <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px", marginBottom: 3 }}>
-            {plant.description || "A beautiful tropical plant known for its distinctive split leaves."}
+            {plant.description}
           </Typography>
         )}
 

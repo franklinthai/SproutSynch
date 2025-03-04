@@ -15,13 +15,11 @@ import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
 
 export async function fetchFirestore(uid) {
-    console.log("querying users/" + uid + "/plants");
     const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
     const plantArr = [];
     querySnapshot.forEach((doc) => {
         plantArr.push({ id: doc.id, ...doc.data()});
     });
-    console.log("plantArr: " + plantArr);
     return plantArr;
 }
 
@@ -48,33 +46,21 @@ export default function MyPlants() {
     const [selectedPlant, setSelectedPlant] = useState(null); // State to track selected plant
     const handleClose = () => setSelectedPlant(null); // Close the modal
     const [uid, setUid] = useState(undefined);
-    
-    // useEffect(() => {
-    //     async function fetchData() {
-    //         const data = await fetchFirestore(uid);
-    //         setPlantArr(data);
-    //     }
-    //     fetchData();
-    // }, []);
 
     useEffect(()=>{
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUid(user.uid);
                 fetchData(user.uid);
-                console.log("setting uid to " + user.uid);
-                console.log("uid is now " + uid);
             } else {
                 router.push("/");
             }
         });
-        console.log("fetching data with uid = " + uid);
 
         async function fetchData(userid) {
             const data = await fetchFirestore(userid);
             setPlantArr(data);
         }
-        // fetchData();
     }, []);
 
     const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +68,6 @@ export default function MyPlants() {
         await updateFirestore(uid, e.target.value, e.target.checked);
     };
 
-    console.log("before return uid is " + uid);
     return <div className="flex flex-col items-center">
             <ResponsiveAppBar />
             {uid === undefined

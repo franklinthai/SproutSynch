@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import { useRouter } from "next/navigation";
 import { db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
@@ -35,11 +35,8 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
         // create a last watered variable using current year and month, the provided time, and 
         // setting the day to the current day - interval + 1 so that the next watering time will 
         // be the after the user adds the plant
-        console.log(typeof(interval) + typeof(time) + typeof(duration));
-        console.log("interval: " + interval + " time: " + time + " duration: " + duration);
         const newDay = now.minus({days: interval-1});
         let lastWatered = DateTime.local(newDay.year, newDay.month, newDay.day, time);
-        console.log(lastWatered);
         // if the time hasn't happened yet on the day the user adds the plant, subtract a day so 
         // that the plant will be watered later that day (eg if the user wants their plant to be 
         // watered at 4pm and they add the plant at 1pm, the plant will be watered the same day)
@@ -52,14 +49,15 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
             interval: interval,
             last_watered: lastWatered.toISO(),
             duration: duration,
-            active: true
+            active: true,
+            description: ""
         });
         added = true;
     } catch (error) {
-      alert(error);
-      added = false;
+        alert(error);
+        added = false;
     } 
-  }
+}
 
 export default function Add() {
     const router = useRouter();
