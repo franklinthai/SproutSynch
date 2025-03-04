@@ -11,8 +11,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import plantIcon from "./../../../assets/plantIcon.png";
-import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
+import { doc, updateDoc} from "firebase/firestore";
 import { db } from "../../utils/firebaseconfig";
+import { fetchPlantByName } from "@/utils/firestore";
 
 const titleStyle = {
   color: "text.primary",
@@ -39,13 +40,6 @@ interface EditPopupProps {
   plantId: string;
   uid: string;
   handleClose: () => void;
-}
-
-export async function fetchPlantByName(name, uid) {
-  const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
-  const querySnapshot = await getDocs(plantQuery);
-  const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  return plant[0]; // Return the first matching plant
 }
 
 export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps) {

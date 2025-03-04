@@ -2,7 +2,6 @@
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../utils/firebaseconfig";
 import React, { useEffect, useState } from "react";
-import { getDocs, collection, doc, updateDoc, orderBy, query } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
 import plantIcon from './../../../assets/plantIcon.png';
@@ -13,23 +12,8 @@ import createTheme from "@mui/material/styles/createTheme";
 import { Box, Modal, ThemeProvider } from "@mui/material";
 import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
-
-export async function fetchFirestore(uid) {
-    const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
-    const plantArr = [];
-    querySnapshot.forEach((doc) => {
-        plantArr.push({ id: doc.id, ...doc.data()});
-    });
-    return plantArr;
-}
-
-export async function updateFirestore(uid, id, active) {
-    try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { active: active })
-    } catch (error) {
-        alert(error);
-    }
-}
+import { fetchFirestore } from "@/utils/firestore";
+import { updateFirestore } from "@/utils/firestore";
 
 const theme = createTheme({
     palette: {

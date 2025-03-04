@@ -7,9 +7,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../utils/firebaseconfig.js';
 import { addFirestore } from "@/utils/firestore";
 
-let added = false;
-
-
 export default function Add() {
     const router = useRouter();
     const [name, setName] = useState("");

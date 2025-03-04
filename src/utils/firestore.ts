@@ -1,7 +1,6 @@
 import { db } from "./firebaseconfig"
-import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { getDocs, collection, addDoc, where, query, doc, updateDoc, orderBy} from "firebase/firestore";
 const { DateTime } = require("luxon");
-
 
 export async function addFirestore(uid, name, species, interval, time, ampm, duration) {
     try {
@@ -48,4 +47,28 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
     } catch (error) {
         alert(error);
     } 
+}
+
+export async function fetchPlantByName(name, uid) {
+    const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
+    const querySnapshot = await getDocs(plantQuery);
+    const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return plant[0]; // Return the first matching plant
+}
+
+export async function fetchFirestore(uid) {
+    const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
+    const plantArr = [];
+    querySnapshot.forEach((doc) => {
+        plantArr.push({ id: doc.id, ...doc.data()});
+    });
+    return plantArr;
+}
+
+export async function updateFirestore(uid, id, active) {
+    try {
+        await updateDoc(doc(db, "users", uid, "plants", id), { active: active })
+    } catch (error) {
+        alert(error);
+    }
 }
