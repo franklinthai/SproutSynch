@@ -1,7 +1,7 @@
 'use client'
 import ResponsiveAppBar from "../navbar"
 import { onAuthStateChanged, updateProfile, updateEmail, updatePassword } from "firebase/auth";
-import { auth } from "../firebaseconfig";
+import { auth } from "../../utils/firebaseconfig";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import EditIcon from "@mui/icons-material/Edit";
