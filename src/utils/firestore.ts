@@ -45,7 +45,8 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
             description: ""
         });
     } catch (error) {
-        alert(error);
+        alert(error); 
+        throw error;
     } 
 }
 
