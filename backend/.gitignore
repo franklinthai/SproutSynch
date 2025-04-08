@@ -1,0 +1,14 @@
+# .gitignore for /backend/ only
+
+# misc
+.DS_Store
+*.pem
+__pycache__/
+*.pyc
+
+# env files (can opt-in for commiting if needed)
+.env*
+venv/
+
+# apache airflow
+/airflow-env

@@ -1,0 +1,11 @@
+apache-airflow==2.8.0
+firebase-admin==6.2.0
+RPi.GPIO==0.7.1 ; sys_platform == "linux"
+python-dotenv==1.0.0
+requests==2.31.0
+pydantic==2.4.2
+pytest==7.4.3
+flask==2.2.5
+flask-cors==4.0.0
+redis==5.0.1
+schedule==1.2.0 
