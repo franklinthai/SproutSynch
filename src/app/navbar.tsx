@@ -83,7 +83,6 @@ function ResponsiveAppBar() {
     <AppBar position="static" sx={{ backgroundColor: '#EAF2E0' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Logo Icon (Visible on larger screens) */}
           <GrassIcon
             sx={{
               display: { xs: 'none', md: 'flex' },
@@ -109,29 +108,7 @@ function ResponsiveAppBar() {
           >
             SproutSynch
           </Typography>
-
-          {/* Logo Icon (Visible on smaller screens) */}
-          <GrassIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
-
-          {/* Title for smaller screens */}
-          <Typography
-            variant="h5"
-            noWrap
-            sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              color: '#50734A',
-              textDecoration: 'none',
-              cursor: 'pointer', // Make it look clickable
-            }}
-            onClick={() => handleNavigation('/')} // Navigate to Home
-          >
-            LOGO
-          </Typography>
-
+          
           {/* Navigation links as Buttons */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 4 }}>
             {pages.map((page) => (
