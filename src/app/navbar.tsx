@@ -30,7 +30,7 @@ function ResponsiveAppBar() {
   const [uid, setUid] = useState(undefined); // firebase user
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-
+  
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -85,7 +85,7 @@ function ResponsiveAppBar() {
         <Toolbar disableGutters>
           <GrassIcon
             sx={{
-              display: { xs: 'none', md: 'flex' },
+              display: { md: 'flex' },
               mr: 1,
               color: '#50734A',
             }}
@@ -96,21 +96,28 @@ function ResponsiveAppBar() {
             variant="h4"
             noWrap
             sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
+              mr: 1,
+              display: { md: 'flex' },
+              fontSize: {
+                xs: '.5rem',
+                sm: '.75rem',
+                md: '1rem',
+                lg: '1.25rem', 
+                xl: '1.5rem',
+              },
               fontFamily: 'Open Sans',
               fontWeight: 700,
               color: '#50734A',
               textDecoration: 'none',
-              cursor: 'pointer', // Make it look clickable
+              cursor: 'pointer', 
             }}
             onClick={() => handleNavigation('/')} // Navigate to Home
           >
             SproutSynch
           </Typography>
-          
+
           {/* Navigation links as Buttons */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 4 }}>
+          <Box sx={{ flexGrow: 1, display: { md: 'flex' }, ml: 4 }}>
             {pages.map((page) => (
               page.perm === false && uid === undefined 
               ? 
@@ -125,10 +132,26 @@ function ResponsiveAppBar() {
                 display: 'block',
                 textDecoration: 'none',
                 fontFamily: 'Open Sans',
-                fontSize: '0.75rem',
-                padding: '5px 9px',
+                fontSize: {
+                  xs: '.2rem',
+                  sm: '.4rem',
+                  md: '.6rem',
+                  lg: '.8rem', 
+                  xl: '1rem',
+                },
+                padding: {
+                  xs: '1px 2px',
+                  sm: '2px 3px',
+                  md: '3px 6px',
+                  lg: '5px 9px', 
+                  xl: '6px 10px',
+                },
                 minWidth: 'auto',
                 mr: 5,
+                justifyContent: {
+                  xs: 'center',
+                  sm: 'flex-start',
+                }
               }}
               >
                 {page.name}
