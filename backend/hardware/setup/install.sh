@@ -96,18 +96,23 @@ sudo -u sproutsynch python3 -m venv venv
 sudo -u sproutsynch venv/bin/pip install --upgrade pip
 sudo -u sproutsynch venv/bin/pip install -r backend/requirements.txt
 
-# Run the first-time setup script
+# Prompt user for SproutSynch credentials
+echo -e "${GREEN}Please enter your SproutSynch account credentials to bind this device.${NC}"
+read -p "Email: " USER_EMAIL
+read -s -p "Password: " USER_PASSWORD
+echo ""
+
+# Run the first-time setup script with credentials
 echo -e "${GREEN}Running first-time setup script...${NC}"
 cd "$REPO_DIR/backend/hardware/setup"
-sudo -u sproutsynch ../../venv/bin/python first_time_setup.py
+sudo -u sproutsynch ../../venv/bin/python first_time_setup.py --email "$USER_EMAIL" --password "$USER_PASSWORD"
 
 # Enable and start services
 echo -e "${GREEN}Enabling and starting services...${NC}"
 systemctl enable redis-server
 systemctl start redis-server
 
-# Create services for Airflow
-# Create Airflow service file
+# Create Airflow scheduler service file
 cat > /etc/systemd/system/airflow-scheduler.service << EOL
 [Unit]
 Description=Airflow scheduler daemon
@@ -127,7 +132,7 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOL
 
-# Reload systemd and enable the services
+# Reload systemd and enable the Airflow scheduler service
 systemctl daemon-reload
 systemctl enable airflow-scheduler
 systemctl start airflow-scheduler
@@ -135,6 +140,5 @@ systemctl start airflow-scheduler
 echo -e "${GREEN}=========================================${NC}"
 echo -e "${GREEN}  SproutSynch Installation Complete!    ${NC}"
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${YELLOW}You can now configure your device by running:${NC}"
-echo -e "${YELLOW}sudo -u sproutsynch /home/sproutsynch/SproutSynch/venv/bin/python /home/sproutsynch/SproutSynch/backend/hardware/setup/first_time_setup.py --user-id YOUR_USER_ID${NC}"
-echo -e "${GREEN}=========================================${NC}" 
+echo -e "${YELLOW}Device is now bound to your account and actively syncing watering tasks.${NC}"
+echo -e "${GREEN}=========================================${NC}"

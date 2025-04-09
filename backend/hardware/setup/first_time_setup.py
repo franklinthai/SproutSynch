@@ -1,122 +1,252 @@
-#!/usr/bin/env python3
-# backend/hardware/setup/first_time_setup.py
-
-
-# VERY ROUGH general outline of the user's init first time config, should ideally streamline all abstractions and
-# allow users to set up their software-defined watering with a single button or a one-liner (target for now)
-
+"""
+First-time setup script for SproutSynch hardware.
+1. Install required dependencies
+2. Register the device with a user account
+3. Configure hardware settings
+4. Setup Airflow for scheduling
+"""
 
 import os
 import sys
+import json
+import uuid
 import subprocess
 import argparse
-import logging
+from typing import Dict, Any, Optional
+import shutil
+import getpass
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-logger = logging.getLogger('setup')
+# Add backend directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
+from hardware.utils import get_hardware_config
 
-def check_dependencies():
-    """Check if required system packages are installed"""
-    required_packages = ['python3-pip', 'redis-server', 'apache-airflow']
-    missing_packages = []
-    
-    logger.info("Checking system dependencies...")
-    for package in required_packages:
-        result = subprocess.run(['dpkg', '-s', package], 
-                               stdout=subprocess.PIPE, 
-                               stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            missing_packages.append(package)
-    
-    return missing_packages
+# Try importing Firebase modules, install if missing
+try:
+    from database.firebase.client import get_firestore_client
+except ImportError:
+    print("Firebase modules not found. Installing dependencies...")
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "../../requirements.txt"])
+    from database.firebase.client import get_firestore_client
 
-def install_dependencies(missing_packages):
-    """Install missing system dependencies"""
-    logger.info(f"Installing missing packages: {', '.join(missing_packages)}")
-    subprocess.run(['sudo', 'apt', 'update'])
-    subprocess.run(['sudo', 'apt', 'install', '-y'] + missing_packages)
+def create_venv():
+    """Create a virtual environment for the project"""
+    venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../venv')
+    
+    if os.path.exists(venv_path):
+        print("Virtual environment already exists.")
+        return venv_path
+        
+    print("Creating virtual environment...")
+    subprocess.run([sys.executable, "-m", "venv", venv_path])
+    
+    # Install dependencies in the venv
+    pip_path = os.path.join(venv_path, 'bin', 'pip') if os.name != 'nt' else os.path.join(venv_path, 'Scripts', 'pip')
+    
+    print("Installing dependencies...")
+    requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../requirements.txt')
+    subprocess.run([pip_path, "install", "-r", requirements_path])
+    
+    return venv_path
 
-def setup_gpio_permissions():
-    """Configure GPIO permissions for the current user"""
-    logger.info("Setting up GPIO permissions...")
-    # Add current user to gpio group if it exists
-    subprocess.run(['sudo', 'usermod', '-a', '-G', 'gpio', os.environ.get('USER')])
-    return True
+def test_hardware_connection() -> bool:
+    """Test connection to hardware components"""
+    try:
+        import RPi.GPIO as GPIO
 
-def configure_airflow():
-    """Set up Airflow configuration and copy DAGs"""
-    logger.info("Configuring Airflow...")
-    # Create Airflow directories if they don't exist
-    os.makedirs('/opt/airflow/dags', exist_ok=True)
-    
-    # Copy DAG files
-    dags_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dags')
-    subprocess.run(['cp', '-r', f"{dags_dir}/*", '/opt/airflow/dags/'])
-    
-    # Initialize the database
-    subprocess.run(['airflow', 'db', 'init'])
-    
-    # Create admin user (optional)
-    subprocess.run(['airflow', 'users', 'create',
-                   '--username', 'admin',
-                   '--password', 'admin',
-                   '--firstname', 'Admin',
-                   '--lastname', 'User',
-                   '--role', 'Admin',
-                   '--email', 'admin@example.com'])
-    
-    return True
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
 
-def configure_redis():
-    """Set up Redis configuration"""
-    logger.info("Configuring Redis...")
-    redis_conf = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                             'database/redis/redis.conf')
-    
-    if os.path.exists(redis_conf):
-        subprocess.run(['sudo', 'cp', redis_conf, '/etc/redis/redis.conf'])
-        subprocess.run(['sudo', 'systemctl', 'restart', 'redis'])
-    
-    return True
+        config = get_hardware_config()
 
-def setup_autostart():
-    """Configure services to start automatically on boot"""
-    logger.info("Setting up autostart...")
-    services = ['redis-server', 'airflow-webserver', 'airflow-scheduler']
+        for relay_id, relay_data in config.get("relays", {}).items():
+            pin = relay_data.get("pin")
+            if pin:
+                print(f"Testing relay {relay_id} on pin {pin}...")
+                GPIO.setup(pin, GPIO.OUT)
+                GPIO.output(pin, GPIO.HIGH)
+                import time
+                time.sleep(1)
+                GPIO.output(pin, GPIO.LOW)
+
+        GPIO.cleanup()
+        return True
+
+    except ImportError:
+        print("RPi.GPIO module not found. Are you running on a Raspberry Pi?")
+        return False
+    except Exception as e:
+        print(f"Error testing hardware: {e}")
+        return False
+
+def register_device(user_id: str, device_name: Optional[str] = None) -> str:
+    """
+    Register the device with a user account
     
-    for service in services:
-        subprocess.run(['sudo', 'systemctl', 'enable', service])
+    Args:
+        user_id: User ID to associate with this device
+        device_name: Optional name for this device
+        
+    Returns:
+        Device ID
+    """
+    if not device_name:
+        device_name = "SproutSynch Device"
     
-    return True
+    # Generate a unique device ID
+    device_id = str(uuid.uuid4())
+    
+    # Get Firestore client
+    db = get_firestore_client()
+    
+    # Add device to user's devices collection
+    db.collection('users').document(user_id).collection('devices').document(device_id).set({
+        'name': device_name,
+        'registered_date': datetime.now().isoformat(),
+        'last_online': datetime.now().isoformat(),
+        'status': 'active'
+    })
+    
+    # Update local config file
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'device_config.json')
+    
+    # Load existing config if it exists
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    else:
+        # Create default config
+        config = {
+            "relays": {
+                "1": {"pin": 17, "name": "Relay 1"},
+                "2": {"pin": 18, "name": "Relay 2"},
+                "3": {"pin": 27, "name": "Relay 3"},
+                "4": {"pin": 22, "name": "Relay 4"}
+            }
+        }
+    
+    # Update with user and device info
+    config["user_id"] = user_id
+    config["device_id"] = device_id
+    config["device_name"] = device_name
+    
+    # Save updated config
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
+        
+    print(f"Device registered with ID: {device_id}")
+    return device_id
+
+def setup_airflow():
+    """Setup Airflow for scheduling"""
+    # Create Airflow home directory
+    airflow_home = os.path.expanduser("~/airflow")
+    os.environ["AIRFLOW_HOME"] = airflow_home
+    
+    if not os.path.exists(airflow_home):
+        os.makedirs(airflow_home)
+    
+    # Initialize Airflow database
+    subprocess.run(["airflow", "db", "init"])
+    
+    # Create symbolic links to our DAGs
+    dags_dir = os.path.join(airflow_home, "dags")
+    if not os.path.exists(dags_dir):
+        os.makedirs(dags_dir)
+    
+    # Link all DAGs from our project
+    project_dags_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../dags')
+    for dag_file in os.listdir(project_dags_dir):
+        if dag_file.endswith(".py"):
+            src = os.path.join(project_dags_dir, dag_file)
+            dst = os.path.join(dags_dir, dag_file)
+            if os.path.exists(dst):
+                os.remove(dst)
+            os.symlink(src, dst)
+    
+    # Create Airflow service
+    service_file = """[Unit]
+Description=Airflow scheduler daemon
+After=network.target
+
+[Service]
+User=pi
+Group=pi
+Type=simple
+ExecStart=/home/pi/venv/bin/airflow scheduler
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+"""
+    
+    service_path = "/etc/systemd/system/airflow-scheduler.service"
+    try:
+        with open(service_path, 'w') as f:
+            f.write(service_file)
+        
+        subprocess.run(["sudo", "systemctl", "daemon-reload"])
+        subprocess.run(["sudo", "systemctl", "enable", "airflow-scheduler"])
+        subprocess.run(["sudo", "systemctl", "start", "airflow-scheduler"])
+        print("Airflow service installed and started")
+    except PermissionError:
+        print(f"Could not create service file at {service_path}. Please run as root or with sudo.")
+        print("Manual steps to set up the Airflow service:")
+        print(f"1. Create {service_path} with the following content:")
+        print(service_file)
+        print("2. Run: sudo systemctl daemon-reload")
+        print("3. Run: sudo systemctl enable airflow-scheduler")
+        print("4. Run: sudo systemctl start airflow-scheduler")
 
 def main():
-    parser = argparse.ArgumentParser(description='First-time setup for SproutSynch')
-    parser.add_argument('--skip-deps', action='store_true', 
-                        help='Skip system dependency installation')
-    parser.add_argument('--skip-gpio', action='store_true',
-                        help='Skip GPIO permission setup')
+    parser = argparse.ArgumentParser(description="First-time setup for SproutSynch device")
+    parser.add_argument("--user-id", help="User ID to associate with this device")
+    parser.add_argument("--device-name", help="Name for this device", default="SproutSynch Device")
+    parser.add_argument("--skip-hardware-test", action="store_true", help="Skip hardware connection test")
+    parser.add_argument("--skip-airflow", action="store_true", help="Skip Airflow setup")
     args = parser.parse_args()
     
-    logger.info("Starting SproutSynch first-time setup...")
+    print("SproutSynch Device Setup")
+    print("=======================")
     
-    # Install dependencies
-    if not args.skip_deps:
-        missing = check_dependencies()
-        if missing:
-            install_dependencies(missing)
+    # Create virtual environment
+    venv_path = create_venv()
+    print(f"Virtual environment created at: {venv_path}")
     
-    # Setup GPIO
-    if not args.skip_gpio:
-        setup_gpio_permissions()
+    # Test hardware connection
+    if not args.skip_hardware_test:
+        if test_hardware_connection():
+            print("Hardware connection test successful")
+        else:
+            print("Hardware connection test failed. Please check your connections.")
+            if input("Continue anyway? (y/n): ").lower() != 'y':
+                sys.exit(1)
     
-    # Configure services
-    configure_airflow()
-    configure_redis()
-    setup_autostart()
+    # Register device
+    user_id = args.user_id
+    if not user_id:
+        user_id = input("Enter the user ID to associate with this device: ")
     
-    logger.info("Setup complete! SproutSynch is ready to use.")
-    logger.info("Access the Airflow dashboard at http://localhost:8080")
+    device_name = args.device_name
+    if not device_name:
+        device_name = input("Enter a name for this device [SproutSynch Device]: ")
+        if not device_name:
+            device_name = "SproutSynch Device"
+    
+    register_device(user_id, device_name)
+    
+    # Setup Airflow
+    if not args.skip_airflow:
+        setup_airflow()
+    
+    print("\nSetup complete!")
+    print("Your SproutSynch device is now ready to water your plants.")
 
 if __name__ == "__main__":
+    try:
+        from datetime import datetime
+    except ImportError:
+        subprocess.run([sys.executable, "-m", "pip", "install", "datetime"])
+        from datetime import datetime
+        
     main()
