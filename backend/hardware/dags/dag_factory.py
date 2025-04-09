@@ -93,6 +93,7 @@ def create_plant_dag(
     if start_date is None:
         start_date = datetime.now()
     
+    # TODO: not too familiar with the default_args, fix later
     default_args = {
         'owner': 'airflow',
         'depends_on_past': False,
@@ -115,7 +116,7 @@ def create_plant_dag(
         catchup=False,
     )
     
-    # Define water task
+    # TODO: Define water task (gotta verify this later)
     PythonOperator(
         task_id=f'water_{plant_id}',
         python_callable=water_plant_task,
