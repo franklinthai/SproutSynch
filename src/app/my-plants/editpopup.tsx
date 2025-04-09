@@ -74,6 +74,7 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
         species: updatedPlant.species,
         description: updatedPlant.description,
         duration: updatedPlant.duration,
+        interval: updatedPlant.interval
         //soil_moisture: updatedPlant.soil_moisture,
       });
       setPlant(updatedPlant); // Update the displayed data
@@ -180,6 +181,25 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
             ) : (
               <Typography variant="body1" sx={textStyle}>
                 {plant.duration} seconds
+              </Typography>
+            )}
+          </div>
+
+          <div style={gridItemStyle}>
+            <Typography variant="body2" sx={titleStyle}>
+              Interval
+            </Typography>
+            {isEditing ? (
+              <TextField
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={updatedPlant?.interval || ""}
+                onChange={(e) => handleChange("interval", parseInt(e.target.value))}
+              />
+            ) : (
+              <Typography variant="body1" sx={textStyle}>
+                {plant.interval} Days
               </Typography>
             )}
           </div>
