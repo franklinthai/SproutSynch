@@ -12,7 +12,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import plantIcon from "./../../../assets/plantIcon.png";
 import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
-import { db } from "../firebaseconfig";
+import { db } from "../../utils/firebaseconfig";
 
 const titleStyle = {
   color: "text.primary",
