@@ -1,64 +1,11 @@
 'use client'
 import { useRouter } from "next/navigation";
-import { db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
-import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from '../firebaseconfig.js';
-
-
-let added = false;
-
-export async function addFirestore(uid, name, species, interval, time, ampm, duration) {
-    try {
-        // double check that the time interval and duration numbers are valid
-        if (name === "") throw new Error("Name is required");
-        if (interval === "") throw new Error("Interval is required");
-        if (time === "") throw new Error("Time is required");
-        if (duration === "") throw new Error("Duration is required");
-        if (time < 1 || time > 12) throw new Error("Invalid time");
-        if (interval < 1) throw new Error("Interval is negative");
-        if (duration < 1) throw new Error("Duration is negative");
-        if (duration > 20) throw new Error("Duration is too long, don't drown your plants!");
-        // convert interval, time and duration to integers
-        interval = parseInt(interval);
-        time = parseInt(time);
-        duration = parseInt(duration);
-        // translate from 12 hour to 24 hour clock (12am and 12pm are special since 12am = 00:00 
-        // and 12pm = 12:00)
-        if (ampm === "am" && time === 12) time = 0;
-        if (ampm === "pm" && time !== 12) time += 12;
-        // current time using luxon's DateTime variable
-        const now = DateTime.now();
-        // create a last watered variable using current year and month, the provided time, and 
-        // setting the day to the current day - interval + 1 so that the next watering time will 
-        // be the after the user adds the plant
-        const newDay = now.minus({days: interval-1});
-        let lastWatered = DateTime.local(newDay.year, newDay.month, newDay.day, time);
-        // if the time hasn't happened yet on the day the user adds the plant, subtract a day so 
-        // that the plant will be watered later that day (eg if the user wants their plant to be 
-        // watered at 4pm and they add the plant at 1pm, the plant will be watered the same day)
-        if (now.hour < time) lastWatered = lastWatered.minus({days: 1});
-        // add to the database in the plants collection. lastWatered is translated to ISO format
-        // since Firebase doesn't know what a luxon DateTime is
-        const docRef = await addDoc(collection(db, "users", uid, "plants"), {
-            name: name,
-            species: species,
-            interval: interval,
-            last_watered: lastWatered.toISO(),
-            duration: duration,
-            active: true,
-            description: "",
-            pipe_id: 0
-        });
-        added = true;
-    } catch (error) {
-        alert(error);
-        added = false;
-    } 
-}
+import { auth } from '../../utils/firebaseconfig.js';
+import { addFirestore } from "@/utils/firestore";
 
 export default function Add() {
     const router = useRouter();
@@ -83,13 +30,15 @@ export default function Add() {
     const onSubmitClick = async (e) => {
         e.preventDefault();
         // add to the database
-        added = false;
-        await addFirestore(uid, name, species, interval, time, ampm, duration);
-        // if successfully added, give a success alert and return to the main page
-        if (added) { 
+        try {
+            await addFirestore(uid, name, species, interval, time, ampm, duration);
+             // if successfully added, give a success alert and return to the main page
             alert("Successfully added " + name);
             router.push("/my-plants");
+        } catch (error) {
+            console.log(error);
         }
+       
     }
 
     return <div className="flex flex-col items-center">

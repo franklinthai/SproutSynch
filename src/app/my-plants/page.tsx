@@ -1,8 +1,8 @@
 "use client"
 import { useRouter } from "next/navigation";
-import { auth, db } from "../firebaseconfig";
+import { auth, db } from "../../utils/firebaseconfig";
 import React, { useEffect, useState } from "react";
-import { getDocs, collection, doc, updateDoc, orderBy, query, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
 import plantIcon from './../../../assets/plantIcon.png';
@@ -14,15 +14,7 @@ import { Box, Modal, ThemeProvider, ClickAwayListener } from "@mui/material";
 import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
 import PipesPopup from "./pipespopup";
-
-export async function fetchFirestore(uid) {
-    const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
-    const plantArr = [];
-    querySnapshot.forEach((doc) => {
-        plantArr.push({ id: doc.id, ...doc.data()});
-    });
-    return plantArr;
-}
+import { fetchFirestore, updateFirestore } from "@/utils/firestore";
 
 export async function fetchFirestorePipes(uid) {
     const docRef = doc(db, "users", uid);
@@ -30,14 +22,6 @@ export async function fetchFirestorePipes(uid) {
     if (docSnapshot) {
         return docSnapshot.data().pipes;
     } else return 0;
-}
-
-export async function updateFirestore(uid, id, active) {
-    try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { active: active });
-    } catch (error) {
-        alert(error);
-    }
 }
 
 const theme = createTheme({

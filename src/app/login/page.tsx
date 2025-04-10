@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "../firebaseconfig.js";
+import { auth } from "../../utils/firebaseconfig.js";
 import ResponsiveAppBar from "../navbar";
 import Link from 'next/link.js';
 import GoogleIcon from '@mui/icons-material/Google';

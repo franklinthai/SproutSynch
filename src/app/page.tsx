@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from "next/navigation";
-import { db } from "./firebaseconfig"
+import { db } from "../utils/firebaseconfig"
 import React, { useEffect, useState } from "react";
 import { getDocs, collection, addDoc, deleteDoc, doc } from "firebase/firestore";
 import ResponsiveAppBar from "./navbar";

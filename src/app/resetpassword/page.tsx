@@ -1,6 +1,6 @@
 'use client'
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebaseconfig";
+import { auth } from "../../utils/firebaseconfig";
 import ResponsiveAppBar from "../navbar"
 import { useState } from "react";
 import Link from "next/link.js";
