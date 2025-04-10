@@ -50,7 +50,8 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
             last_watered: lastWatered.toISO(),
             duration: duration,
             active: true,
-            description: ""
+            description: "",
+            pipe_id: 0
         });
         added = true;
     } catch (error) {

@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { auth, db } from "../firebaseconfig";
 import React, { useEffect, useState } from "react";
-import { getDocs, collection, doc, updateDoc, orderBy, query } from "firebase/firestore";
+import { getDocs, collection, doc, updateDoc, orderBy, query, getDoc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 import ResponsiveAppBar from "../navbar";
 import plantIcon from './../../../assets/plantIcon.png';
@@ -10,9 +10,10 @@ import Image from 'next/image';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import Switch from "@mui/material/Switch";
 import createTheme from "@mui/material/styles/createTheme";
-import { Box, Modal, ThemeProvider } from "@mui/material";
+import { Box, Modal, ThemeProvider, ClickAwayListener } from "@mui/material";
 import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
+import PipesPopup from "./pipespopup";
 
 export async function fetchFirestore(uid) {
     const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
@@ -23,9 +24,17 @@ export async function fetchFirestore(uid) {
     return plantArr;
 }
 
+export async function fetchFirestorePipes(uid) {
+    const docRef = doc(db, "users", uid);
+    const docSnapshot = await getDoc(docRef);
+    if (docSnapshot) {
+        return docSnapshot.data().pipes;
+    } else return 0;
+}
+
 export async function updateFirestore(uid, id, active) {
     try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { active: active })
+        await updateDoc(doc(db, "users", uid, "plants", id), { active: active });
     } catch (error) {
         alert(error);
     }
@@ -43,8 +52,11 @@ export default function MyPlants() {
     const router = useRouter();
     const [plantArr, setPlantArr] = useState([]);
     const [active, setActive] = useState(true);
+    const [pipes, setPipes] = useState("");
+    const [editPipes, setEditPipes] = useState(false);
     const [selectedPlant, setSelectedPlant] = useState(null); // State to track selected plant
     const handleClose = () => setSelectedPlant(null); // Close the modal
+    const togglePipes = () => setEditPipes(!editPipes); // Toggle the pipes modal
     const [uid, setUid] = useState(undefined);
 
     useEffect(()=>{
@@ -60,13 +72,30 @@ export default function MyPlants() {
         async function fetchData(userid) {
             const data = await fetchFirestore(userid);
             setPlantArr(data);
+            const num = await fetchFirestorePipes(userid);
+            setPipes(num);
         }
     }, []);
 
     const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setActive(e.target.checked);
         await updateFirestore(uid, e.target.value, e.target.checked);
-    };
+    }
+
+    const openPipes = () => {
+        setEditPipes(true);
+    }
+
+    const closePipes = (p: string) => {
+        setEditPipes(false);
+        setPipes(p);
+    }
+
+    const updateCard = (updatedPlant) => {
+        setPlantArr((prevPlants) =>
+            prevPlants.map((plant) => (plant.id === updatedPlant.id ? updatedPlant : plant))
+        );
+    }
 
     return <div className="flex flex-col items-center">
             <ResponsiveAppBar />
@@ -79,7 +108,7 @@ export default function MyPlants() {
                 {plantArr.map((plant) => (
                     <div 
                         key={plant.id} 
-                        className="Card w-96 h-64 rounded-xl bg-white shadow-lg"
+                        className="Card w-96 h-72 rounded-xl bg-white shadow-lg"
                         onClick={() => setSelectedPlant(plant)} // Open modal when clicked
                     >
                         <Image src={plantIcon} alt="PlantIcon" className="h-1/2 object-cover"/>
@@ -97,14 +126,41 @@ export default function MyPlants() {
                                 .plus({ days: plant.interval })
                                 .toLocaleString({ month: "short", day: "numeric", hour: "numeric", minute: "numeric" })}
                         </p>
+                        <p className="pl-4">Pipe Number: {plant.pipe_id || "None"}</p>
                     </div>
                 ))}
             </div>
+            <button className="fixed bottom-8 left-8 ActionButton !rounded-full !w-auto !px-4" onClick={openPipes}>
+                Pipes: {pipes}
+            </button>
+            <Modal
+                open={editPipes} 
+                onClose={handleClose}
+                aria-labelledby="plant-details-modal"
+                aria-describedby="plant-details-description"
+            >
+                <Box
+                    sx={{
+                        position: "fixed",
+                        bottom: "1.9rem",
+                        left: "1.9rem",
+                        width: "25rem",
+                        height: "9rem",
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        borderRadius: 6,
+                    }}
+                    style={{ border: "none"}}
+                >
+                    <PipesPopup pipes={pipes} uid={uid} handleClose={closePipes} handleUpdate={updateCard}/>
+                </Box>
+            </Modal>
             <Modal
                 open={!!selectedPlant} // Only open when a plant is selected
                 onClose={handleClose}
                 aria-labelledby="plant-details-modal"
                 aria-describedby="plant-details-description"
+                style={{ border: "none"}}
             >
                 <Box
                     sx={{
@@ -120,7 +176,7 @@ export default function MyPlants() {
                     style={{ border: "none"}}
                 >
                     {selectedPlant && (
-                        <EditPopup plantId={selectedPlant.name} uid={uid} handleClose={handleClose} />
+                        <EditPopup plantId={selectedPlant.name} pipes={pipes} uid={uid} handleClose={handleClose} handleUpdate={updateCard}/>
                     )}
                 </Box>
             </Modal></>}

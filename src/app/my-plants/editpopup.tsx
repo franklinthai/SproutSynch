@@ -13,6 +13,9 @@ import SaveIcon from "@mui/icons-material/Save";
 import plantIcon from "./../../../assets/plantIcon.png";
 import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../firebaseconfig";
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+
 
 const titleStyle = {
   color: "text.primary",
@@ -37,8 +40,10 @@ const gridItemStyle = {
 
 interface EditPopupProps {
   plantId: string;
+  pipes: string;
   uid: string;
   handleClose: () => void;
+  handleUpdate: (updatedPlant: any) => void;
 }
 
 export async function fetchPlantByName(name, uid) {
@@ -48,7 +53,7 @@ export async function fetchPlantByName(name, uid) {
   return plant[0]; // Return the first matching plant
 }
 
-export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps) {
+export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpdate}: EditPopupProps) {
   const [plant, setPlant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedPlant, setUpdatedPlant] = useState(null);
@@ -75,15 +80,29 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
 
   const handleSave = async () => {
     if (updatedPlant) {
-      const plantDoc = doc(db, "users", uid, "plants", updatedPlant.id);
-      await updateDoc(plantDoc, {
-        species: updatedPlant.species,
-        description: updatedPlant.description,
-        duration: updatedPlant.duration,
-        //soil_moisture: updatedPlant.soil_moisture,
-      });
-      setPlant(updatedPlant); // Update the displayed data
-      setIsEditing(false); // Exit editing mode
+      try {
+        if (updatedPlant.duration <= 0) throw new Error("Duration must be positive");
+        const plantQuery = query(collection(db, "users", uid, "plants"), where("pipe_id", "==", updatedPlant.pipe_id));
+        const querySnapshot = await getDocs(plantQuery);
+        querySnapshot.forEach((doc) => {
+          if (doc.id !== updatedPlant.id) {
+            throw new Error("Pipe number already in use");
+          }
+        });
+        const plantDoc = doc(db, "users", uid, "plants", updatedPlant.id);
+        await updateDoc(plantDoc, {
+          species: updatedPlant.species,
+          description: updatedPlant.description,
+          duration: updatedPlant.duration,
+          pipe_id: updatedPlant.pipe_id,
+          //soil_moisture: updatedPlant.soil_moisture,
+        });
+        setPlant(updatedPlant); // Update the displayed data
+        setIsEditing(false); // Exit editing mode
+        handleUpdate(updatedPlant); // Update the plant in the main page
+      } catch (error) {
+        alert(error);
+      }
     }
   };
 
@@ -192,19 +211,26 @@ export default function EditPopup({ plantId, uid, handleClose }: EditPopupProps)
 
           <div style={gridItemStyle}>
             <Typography variant="body2" sx={titleStyle}>
-              Soil Moisture
+              Pipe Number
             </Typography>
             {isEditing ? (
-              <TextField
+              <Select
                 type="number"
                 fullWidth
                 variant="outlined"
-                value={updatedPlant?.soil_moisture || ""}
-                onChange={(e) => handleChange("soil_moisture", parseInt(e.target.value))}
-              />
+                value={updatedPlant?.pipe_id || "None"}
+                onChange={(e) => handleChange("pipe_id", parseInt(e.target.value))}
+              >
+                <MenuItem value={0}>None</MenuItem>
+                {[...Array(parseInt(pipes)).keys()].map((i) => (
+                  <MenuItem key={i} value={i + 1}>
+                    {i + 1}
+                  </MenuItem>
+                ))}
+              </Select>
             ) : (
               <Typography variant="body1" sx={textStyle}>
-                {plant.soil_moisture || 45}%
+                {plant.pipe_id || "None"}
               </Typography>
             )}
           </div>
