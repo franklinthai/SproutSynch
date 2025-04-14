@@ -51,8 +51,8 @@ input, select {
   padding: 0.5rem; 
   margin-top: 1.5rem; 
   border-radius: 1rem; 
-  border-width: 1px; 
-  width: 8rem; 
+  border-width: 2px;
+  width: 8rem;
   font-size: 1.125rem;
   line-height: 1.5rem; 
   color: #ffffff;
