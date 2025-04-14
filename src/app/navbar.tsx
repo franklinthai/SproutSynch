@@ -21,7 +21,6 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
-
 const pages = [
   { name: 'Home', path: '/', perm: true },
   { name: 'Add plant', path: '/add', perm: false },
@@ -92,19 +91,14 @@ function ResponsiveAppBar() {
     <AppBar position="static" sx={{ backgroundColor: '#EAF2E0' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <GrassIcon
-            sx={{
-              display: { md: 'flex' },
-              mr: 1,
-              color: '#50734A',
-            }}
-          />
+          <img src="logo.svg" alt="Logo" width={32} height={32} />
           {/* Title */}
           <Typography
             variant="h4"
             noWrap
             sx={{
               mr: 1,
+              ml: 1,
               display: { md: 'flex' },
               fontSize: {
                 xs: '.75rem',
@@ -181,9 +175,9 @@ function ResponsiveAppBar() {
                 textDecoration: 'none',
                 fontFamily: 'Open Sans',
                 fontSize: {
-                  md: '.65rem',
-                  lg: '.8rem', 
-                  xl: '.9rem',
+                  md: '.6rem',
+                  lg: '.7rem', 
+                  xl: '.8rem',
                 },
                 padding: {
                   md: '3px 6px',
