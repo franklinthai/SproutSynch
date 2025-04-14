@@ -14,6 +14,13 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../utils/firebaseconfig.js';
 import { signOut } from "firebase/auth";
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
 
 const pages = [
   { name: 'Home', path: '/', perm: true },
@@ -30,6 +37,8 @@ function ResponsiveAppBar() {
   const [uid, setUid] = useState(undefined); // firebase user
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const toggleDrawer = (open) => () => setDrawerOpen(open);
   
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
@@ -99,11 +108,11 @@ function ResponsiveAppBar() {
               mr: 1,
               display: { md: 'flex' },
               fontSize: {
-                xs: '.5rem',
-                sm: '.75rem',
-                md: '1rem',
+                xs: '.75rem',
+                sm: '1rem',
+                md: '1.25rem',
                 lg: '1.25rem', 
-                xl: '1.5rem',
+                xl: '1.25rem',
               },
               fontFamily: 'Open Sans',
               fontWeight: 700,
@@ -115,9 +124,49 @@ function ResponsiveAppBar() {
           >
             SproutSynch
           </Typography>
+          
+              
+          {/* Hamburger menu icon - visible on xs/sm */}
+            <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'none' }, mr: 2 }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              onClick={toggleDrawer(true)}
+              sx={{ color: '#50734A' }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
 
-          {/* Navigation links as Buttons */}
-          <Box sx={{ flexGrow: 1, display: { md: 'flex' }, ml: 4 }}>
+          <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
+            <Box
+              sx={{ width: 200 }}
+              role="presentation"
+              onClick={toggleDrawer(false)}
+              onKeyDown={toggleDrawer(false)}
+            >
+              <List>
+                {pages.map((page) => (
+                  page.perm === false && uid === undefined
+                    ? null
+                    : (
+                      <ListItem key={page.name} disablePadding>
+                        <ListItemButton onClick={() => handleNavigation(page.path)}>
+                          <ListItemText primary={page.name} />
+                        </ListItemButton>
+                      </ListItem>
+                    )
+                ))}
+              </List>
+            </Box>
+          </Drawer>
+
+          {/* Navigation links as Buttons for larger sizes */}
+          <Box sx={{ display: {
+            xs: 'none',
+            sm: 'none',
+            md: 'flex',
+          }, flexGrow: 1, ml: 4 }}>
             {pages.map((page) => (
               page.perm === false && uid === undefined 
               ? 
@@ -133,9 +182,9 @@ function ResponsiveAppBar() {
                 textDecoration: 'none',
                 fontFamily: 'Open Sans',
                 fontSize: {
-                  xs: '.2rem',
-                  sm: '.4rem',
-                  md: '.6rem',
+                  xs: '.35rem',
+                  sm: '.5rem',
+                  md: '.65rem',
                   lg: '.8rem', 
                   xl: '1rem',
                 },
