@@ -41,13 +41,13 @@ export default function Add() {
        
     }
 
-    return <div className="flex flex-col items-center">
+    return <div className="flex flex-col items-center min-h-screen">
         <ResponsiveAppBar></ResponsiveAppBar>
         {uid === undefined 
         ? 
         <p className="mt-8">You must sign in to access this feature.</p>
         :
-        <><h1 className="mt-12 mb-4">Customize your plant</h1>
+        <><h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold">Customize your plant</h1>
         <div className="w-1/3">
             <div className="Label">Name</div>
             <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter plant name"></input>

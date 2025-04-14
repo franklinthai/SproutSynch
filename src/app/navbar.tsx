@@ -99,7 +99,6 @@ function ResponsiveAppBar() {
               color: '#50734A',
             }}
           />
-
           {/* Title */}
           <Typography
             variant="h4"
@@ -182,15 +181,11 @@ function ResponsiveAppBar() {
                 textDecoration: 'none',
                 fontFamily: 'Open Sans',
                 fontSize: {
-                  xs: '.35rem',
-                  sm: '.5rem',
                   md: '.65rem',
                   lg: '.8rem', 
-                  xl: '1rem',
+                  xl: '.9rem',
                 },
                 padding: {
-                  xs: '1px 2px',
-                  sm: '2px 3px',
                   md: '3px 6px',
                   lg: '5px 9px', 
                   xl: '6px 10px',
