@@ -15,14 +15,7 @@ import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
 import PipesPopup from "./pipespopup";
 import { fetchFirestore, updateFirestore } from "@/utils/firestore";
-
-export async function fetchFirestorePipes(uid) {
-    const docRef = doc(db, "users", uid);
-    const docSnapshot = await getDoc(docRef);
-    if (docSnapshot) {
-        return docSnapshot.data().pipes;
-    } else return 0;
-}
+import { fetchFirestorePipes } from "@/utils/firestore";
 
 const theme = createTheme({
     palette: {

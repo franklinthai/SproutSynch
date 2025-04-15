@@ -1,6 +1,15 @@
 import { db } from "./firebaseconfig"
-import { getDocs, collection, addDoc, where, query, doc, updateDoc, orderBy} from "firebase/firestore";
+import { getDocs, getDoc, collection, addDoc, where, query, doc, updateDoc, orderBy} from "firebase/firestore";
 const { DateTime } = require("luxon");
+
+
+export async function fetchFirestorePipes(uid) {
+    const docRef = doc(db, "users", uid);
+    const docSnapshot = await getDoc(docRef);
+    if (docSnapshot) {
+        return docSnapshot.data().pipes;
+    } else return 0;
+}
 
 export async function addFirestore(uid, name, species, interval, time, ampm, duration) {
     try {
