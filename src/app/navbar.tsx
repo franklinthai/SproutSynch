@@ -14,7 +14,13 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../utils/firebaseconfig.js';
 import { signOut } from "firebase/auth";
-
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
 const pages = [
   { name: 'Home', path: '/', perm: true },
   { name: 'Add plant', path: '/add', perm: false },
@@ -30,7 +36,9 @@ function ResponsiveAppBar() {
   const [uid, setUid] = useState(undefined); // firebase user
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const toggleDrawer = (open) => () => setDrawerOpen(open);
+  
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -83,57 +91,75 @@ function ResponsiveAppBar() {
     <AppBar position="static" sx={{ backgroundColor: '#EAF2E0' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Logo Icon (Visible on larger screens) */}
-          <GrassIcon
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              mr: 1,
-              color: '#50734A',
-            }}
-          />
-
+          <img src="logo.svg" alt="Logo" width={32} height={32} />
           {/* Title */}
           <Typography
             variant="h4"
             noWrap
             sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
+              mr: 1,
+              ml: 1,
+              display: { md: 'flex' },
+              fontSize: {
+                xs: '.75rem',
+                sm: '1rem',
+                md: '1.25rem',
+                lg: '1.25rem', 
+                xl: '1.25rem',
+              },
               fontFamily: 'Open Sans',
               fontWeight: 700,
               color: '#50734A',
               textDecoration: 'none',
-              cursor: 'pointer', // Make it look clickable
+              cursor: 'pointer', 
             }}
             onClick={() => handleNavigation('/')} // Navigate to Home
           >
             SproutSynch
           </Typography>
+          
+              
+          {/* Hamburger menu icon - visible on xs/sm */}
+            <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'none' }, mr: 2 }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              onClick={toggleDrawer(true)}
+              sx={{ color: '#50734A' }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
 
-          {/* Logo Icon (Visible on smaller screens) */}
-          <GrassIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
+          <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
+            <Box
+              sx={{ width: 200 }}
+              role="presentation"
+              onClick={toggleDrawer(false)}
+              onKeyDown={toggleDrawer(false)}
+            >
+              <List>
+                {pages.map((page) => (
+                  page.perm === false && uid === undefined
+                    ? null
+                    : (
+                      <ListItem key={page.name} disablePadding>
+                        <ListItemButton onClick={() => handleNavigation(page.path)}>
+                          <ListItemText primary={page.name} />
+                        </ListItemButton>
+                      </ListItem>
+                    )
+                ))}
+              </List>
+            </Box>
+          </Drawer>
 
-          {/* Title for smaller screens */}
-          <Typography
-            variant="h5"
-            noWrap
-            sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              color: '#50734A',
-              textDecoration: 'none',
-              cursor: 'pointer', // Make it look clickable
-            }}
-            onClick={() => handleNavigation('/')} // Navigate to Home
-          >
-            LOGO
-          </Typography>
-
-          {/* Navigation links as Buttons */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 4 }}>
+          {/* Navigation links as Buttons for larger sizes */}
+          <Box sx={{ display: {
+            xs: 'none',
+            sm: 'none',
+            md: 'flex',
+          }, flexGrow: 1, ml: 4 }}>
             {pages.map((page) => (
               page.perm === false && uid === undefined 
               ? 
@@ -148,10 +174,22 @@ function ResponsiveAppBar() {
                 display: 'block',
                 textDecoration: 'none',
                 fontFamily: 'Open Sans',
-                fontSize: '0.75rem',
-                padding: '5px 9px',
+                fontSize: {
+                  md: '.6rem',
+                  lg: '.7rem', 
+                  xl: '.8rem',
+                },
+                padding: {
+                  md: '3px 6px',
+                  lg: '5px 9px', 
+                  xl: '6px 10px',
+                },
                 minWidth: 'auto',
                 mr: 5,
+                justifyContent: {
+                  xs: 'center',
+                  sm: 'flex-start',
+                }
               }}
               >
                 {page.name}
