@@ -1,16 +1,11 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import Card from "@mui/material/Card";
-import CardHeader from "@mui/material/CardHeader";
-import CardMedia from "@mui/material/CardMedia";
+import React, { useState } from "react";
 import CardContent from "@mui/material/CardContent";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import plantIcon from "./../../../assets/plantIcon.png";
 import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../../utils/firebaseconfig";
 
@@ -39,6 +34,10 @@ interface EditPopupProps {
 }
 
 export default function PipesPopup({ pipes, uid, handleClose, handleUpdate }: EditPopupProps) {
+  // fix weird error A component is changing an uncontrolled input to be controlled
+  // initial state for pipes could be undefined, so we set it to 0
+  if(pipes === undefined) 
+    pipes = "0";
   const [pipesVal, setPipesVal] = useState(pipes);
 
   const handleSave = async () => {
