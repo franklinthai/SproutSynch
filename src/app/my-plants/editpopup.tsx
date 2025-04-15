@@ -87,6 +87,7 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
           description: updatedPlant.description,
           duration: updatedPlant.duration,
           pipe_id: updatedPlant.pipe_id,
+          interval: updatedPlant.interval,
           //soil_moisture: updatedPlant.soil_moisture,
         });
         setPlant(updatedPlant); // Update the displayed data
@@ -143,45 +144,51 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
       />
       <CardMedia component="img" height="194" image={plantIcon.src} alt="Plant Icon" />
       <CardContent>
-        <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px", marginBottom: 1 }}>
-          Species
-        </Typography>
-        {isEditing ? (
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={updatedPlant?.species || ""}
-            onChange={(e) => handleChange("species", e.target.value)}
-          />
-        ) : (
-          <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px", marginBottom: 3 }}>
-            {plant.species || "Unknown"}
-          </Typography>
-        )}
 
-        <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px", marginBottom: 1 }}>
-          Description
-        </Typography>
-        {isEditing ? (
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={updatedPlant?.description || ""}
-            onChange={(e) => handleChange("description", e.target.value)}
-          />
-        ) : (
-          <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px", marginBottom: 3 }}>
-            {plant.description}
-          </Typography>
-        )}
-
-        <div
+      <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(2, 1fr)",
             gap: "16px",
           }}
         >
+          <div style={gridItemStyle}>
+          <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px"}}>
+            Species
+          </Typography>
+          {isEditing ? (
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={updatedPlant?.species || ""}
+              onChange={(e) => handleChange("species", e.target.value)}
+            />
+        ) : (
+            <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px"}}>
+              {plant.species || "Unknown"}
+            </Typography>
+          )}
+          </div>
+
+          <div style={gridItemStyle}>
+          <Typography variant="h6" sx={{ ...titleStyle, fontSize: "20px"}}>
+            Description
+          </Typography>
+          {isEditing ? (
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={updatedPlant?.description || ""}
+              onChange={(e) => handleChange("description", e.target.value)}
+            />
+          ) : (
+            <Typography variant="body1" sx={{ ...textStyle, fontSize: "20px"}}>
+              {plant.description}
+            </Typography>
+          )}
+          </div>
+
+      
           <div style={gridItemStyle}>
             <Typography variant="body2" sx={titleStyle}>
               Duration
@@ -203,6 +210,25 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
 
           <div style={gridItemStyle}>
             <Typography variant="body2" sx={titleStyle}>
+              Interval
+            </Typography>
+            {isEditing ? (
+              <TextField
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={updatedPlant?.interval || ""}
+                onChange={(e) => handleChange("interval", parseInt(e.target.value))}
+              />
+            ) : (
+              <Typography variant="body1" sx={textStyle}>
+                {plant.interval} Days
+              </Typography>
+            )}
+          </div>
+
+          <div style={gridItemStyle}>
+            <Typography variant="body2" sx={titleStyle}>
               Pipe Number
             </Typography>
             {isEditing ? (
@@ -214,11 +240,15 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
                 onChange={(e) => handleChange("pipe_id", parseInt(e.target.value))}
               >
                 <MenuItem value={0}>None</MenuItem>
-                {[...Array(parseInt(pipes)).keys()].map((i) => (
-                  <MenuItem key={i} value={i + 1}>
-                    {i + 1}
-                  </MenuItem>
-                ))}
+                {
+                   Number.isInteger(parseInt(pipes)) && parseInt(pipes) > 0
+                   ? [...Array(parseInt(pipes)).keys()].map((i) => (
+                       <MenuItem key={i} value={i + 1}>
+                         {i + 1}
+                       </MenuItem>
+                     ))
+                   : null
+                }
               </Select>
             ) : (
               <Typography variant="body1" sx={textStyle}>
