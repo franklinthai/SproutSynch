@@ -63,7 +63,7 @@ export async function fetchPlantByName(name, uid) {
     const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
     const querySnapshot = await getDocs(plantQuery);
     const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    return plant[0]; // Return the first matching plant
+    return plant[0];
 }
 
 export async function fetchFirestore(uid) {
@@ -81,4 +81,8 @@ export async function updateFirestore(uid, id, active) {
     } catch (error) {
         alert(error);
     }
+}
+
+export async function updateLastWatered(uid, name) {
+
 }
