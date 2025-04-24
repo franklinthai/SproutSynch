@@ -4,15 +4,24 @@ import { fetchFirestore } from '@/utils/firestore'
 
 // function to get plants from a user
 export async function GET(request: Request) {
-    // const query params
+    // will need more verification for 
+
+    const url: URL = new URL(request.url);          
+    const queryParameters: URLSearchParams = url.searchParams; 
+    const uid: string | null = queryParameters.get('uid'); 
+
+    if(uid == null) {
+        return NextResponse.json({ error: 'uid is invalid' }, { status: 400 });
+    }
+
     
-    // do some verification of the request relative to headers and return codes accordingly
-
-
+    const plantArr = await fetchFirestore(uid);
+    // naive send all plants maybe parse depneding on pipe id
+    console.log(plantArr);
     // 500, 400 etc return status code given different requests.
-    return NextResponse.json({
-        hello : "World",
-    });
+    return NextResponse.json(
+        {plants : plantArr}, {status : 200}
+    );
     
 }
 
