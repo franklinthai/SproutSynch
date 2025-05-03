@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchFirestore } from '@/utils/firestore'
+import { fetchFirestore, updateLastWatered, fetchPlantByName } from '@/utils/firestore'
 
 
 // function to get plants from a user
@@ -27,17 +27,38 @@ export async function GET(request: Request) {
 
 // function to take a request from hardware and update plants with time given
 export async function PUT(request: Request) {
-    const data = await request.json;
-    // might have to do authroization with headers
+    // parse the body into json
+    request.json().then(
+        // success
+        (data) => {
+            // data should be in form
+            // {
+            //     "uid": "<uid string>", 
+            //     "time": "<UTC time in ISO format>",
+            //     "names": [
+            //         "name1", 
+            //         "name2",
+            //         "name3"
+            //     ]
+            // }
+            const uid = data.uid;
+            const time = data.time;
+            const names = data.names;
+            
+            // update the plant for each name in the names list
+            names.forEach(async (name) => {
+                const plant = await fetchPlantByName(name, uid);
+                if (!plant.hasOwnProperty("id")) return NextResponse.json({error: "could not find plant"}, {status: 500});
+                await updateLastWatered(uid, plant.id, time);
+            });
+        },
+        // failed to get data
+        (reason) => {
+            return NextResponse.json({error: "failed to retrieve data: " + reason}, {status: 400});
+        }
+    );
 
-    // verify information and type stuff so given plant names and a time update them accordingly
-
-    // 500, 400, 200 etc return status code given different requests.
-    
-    // create function that updates specific plants with time given in firestore.ts
-
-    return NextResponse.json({
-        hello : "World",
-    });
- 
+    return NextResponse.json(
+        {status: 200}
+    );
 }
