@@ -5,12 +5,12 @@ import { fetchFirestore, updateLastWatered, fetchPlantByName } from '@/utils/fir
 // function to get plants from a user
 export async function GET(request: Request) {
     // will need more verification for 
-
+    // should prolly check uid before fetching naive
     const url: URL = new URL(request.url);          
     const queryParameters: URLSearchParams = url.searchParams; 
     const uid: string | null = queryParameters.get('uid'); 
 
-    if(uid == null) {
+    if(uid === null) {
         return NextResponse.json({ error: 'uid is invalid' }, { status: 400 });
     }
 
