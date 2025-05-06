@@ -4,9 +4,9 @@ Briefly describe the purpose of this pull request and the changes made.
 
 ## Changes Made
 
-- [ ] Describe change #1
-- [ ] Describe change #2
-- [ ] Additional changes...
+- Describe change #1
+- Describe change #2
+- Additional changes...
 
 ## Checklist
 
