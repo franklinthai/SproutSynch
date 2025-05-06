@@ -41,3 +41,6 @@ next-env.d.ts
 
 # apache airflow
 /airflow-env
+
+# hardware related
+hardware.log
