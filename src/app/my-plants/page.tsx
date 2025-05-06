@@ -14,7 +14,7 @@ import { Box, Modal, ThemeProvider, ClickAwayListener } from "@mui/material";
 import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
 import PipesPopup from "./pipespopup";
-import { fetchFirestore, updateFirestore } from "@/utils/firestore";
+import { fetchFirestore, updateActive } from "@/utils/firestore";
 import { fetchFirestorePipes } from "@/utils/firestore";
 
 const theme = createTheme({
@@ -56,7 +56,7 @@ export default function MyPlants() {
 
     const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setActive(e.target.checked);
-        await updateFirestore(uid, e.target.value, e.target.checked);
+        await updateActive(uid, e.target.value, e.target.checked);
     }
 
     const openPipes = () => {

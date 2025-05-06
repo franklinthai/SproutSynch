@@ -1,4 +1,5 @@
 import { db } from "./firebaseconfig"
+import { NextResponse } from 'next/server'
 import { getDocs, getDoc, collection, addDoc, where, query, doc, updateDoc, orderBy} from "firebase/firestore";
 const { DateTime } = require("luxon");
 
@@ -75,14 +76,18 @@ export async function fetchFirestore(uid) {
     return plantArr;
 }
 
-export async function updateFirestore(uid, id, active) {
+export async function updateActive(uid, id, active) {
     try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { active: active })
+        await updateDoc(doc(db, "users", uid, "plants", id), { active: active });
     } catch (error) {
         alert(error);
     }
 }
 
-export async function updateLastWatered(uid, name) {
-
+export async function updateLastWatered(uid, id, time) {
+    try {
+        await updateDoc(doc(db, "users", uid, "plants", id), { last_watered: time });
+    } catch (error) {
+        return NextResponse.json({ error: "failed to update database: " + error }, { status: 500 });
+    }
 }
