@@ -65,22 +65,67 @@ def generate_plant_watering_dag(plant_id, plant_name, interval_hours, duration_s
     
     # Generate DAG code as a string
     dag_code = f'''
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 import logging
+import os
+import sys
+from pathlib import Path
+
+# Add the backend directory to the Python path
+backend_path = Path(__file__).parent.parent
+sys.path.append(str(backend_path))
+from api_client import update_last_watered
+
+# Get the user ID from the environment variable
+USER_UID = "{USER_UID}"
 
 def water_plant_{plant_id}(**kwargs):
     """Water plant {plant_name} for {duration_seconds} seconds"""
     logger = logging.getLogger("airflow.task")
     logger.info(f"Watering plant {plant_name} (ID: {plant_id}) for {duration_seconds} seconds")
     
-    # TODO: Add actual hardware control code here
-    # Example: 
-    # from hardware.controller import activate_pump
-    # activate_pump(pipe_id={plant_id}, duration_seconds={duration_seconds})
+    watering_successful = False
     
-    return {{"plant_id": {plant_id}, "duration": {duration_seconds}, "timestamp": datetime.now().isoformat()}}
+    try:
+        # Import the hardware controller module
+        from hardware_controller import activate_pump
+        
+        # Activate the pump for the specified duration
+        watering_successful = activate_pump(pipe_id={plant_id}, duration_seconds={duration_seconds})
+        
+        if watering_successful:
+            logger.info(f"Successfully watered plant {plant_name}")
+            
+            # Get current UTC time for the timestamp
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            # Update the last_watered timestamp in the database
+            update_successful = update_last_watered(
+                uid=USER_UID,
+                plant_name="{plant_name}",
+                timestamp=current_time
+            )
+            
+            if update_successful:
+                logger.info(f"Successfully updated last_watered timestamp for {plant_name}")
+            else:
+                logger.error(f"Failed to update last_watered timestamp for {plant_name}")
+        else:
+            logger.error(f"Failed to water plant {plant_name}")
+    
+    except Exception as e:
+        logger.error(f"Error during watering process: {{e}}")
+        watering_successful = False
+    
+    return {{
+        "plant_id": {plant_id},
+        "plant_name": "{plant_name}",
+        "duration": {duration_seconds},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "success": watering_successful
+    }}
 
 default_args = {{
     'owner': 'sproutsynch',

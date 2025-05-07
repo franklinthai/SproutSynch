@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 import logging
-from backend.api_client import display_plant_data, get_plants_needing_water
+from backend.api_client import display_plant_data, get_plants_needing_water, update_last_watered
 
 # Define default arguments for the DAG
 default_args = {
@@ -49,6 +49,63 @@ def fetch_and_display_plants(uid, **kwargs):
         "plants_needing_water": len(plants_needing_water)
     }
 
+def simulate_watering_and_update(uid, **kwargs):
+    """
+    Task function to simulate watering a plant and update the last_watered timestamp
+    This is for testing the update_last_watered functionality
+    """
+    logger = logging.getLogger("airflow.task")
+    
+    try:
+        # Get plant data
+        from backend.api_client import get_api_data
+        data = get_api_data(uid)
+        plants = data.get('plants', [])
+        
+        if not plants:
+            logger.warning("No plants found for simulation")
+            return {"status": "failed", "reason": "no plants found"}
+        
+        # Select the first active plant for simulation
+        test_plant = None
+        for plant in plants:
+            if plant.get('active', True):
+                test_plant = plant
+                break
+        
+        if not test_plant:
+            logger.warning("No active plants found for simulation")
+            return {"status": "failed", "reason": "no active plants"}
+        
+        plant_name = test_plant.get('name', 'Unknown Plant')
+        logger.info(f"Simulating watering for plant: {plant_name}")
+        
+        # Get current UTC time for the timestamp
+        current_time = datetime.now(timezone.utc).isoformat()
+        
+        # Update the last_watered timestamp
+        logger.info(f"Updating last_watered timestamp to: {current_time}")
+        success = update_last_watered(uid, plant_name, current_time)
+        
+        if success:
+            logger.info(f"Successfully updated last_watered for {plant_name}")
+            return {
+                "status": "success",
+                "plant_name": plant_name,
+                "timestamp": current_time
+            }
+        else:
+            logger.error(f"Failed to update last_watered for {plant_name}")
+            return {
+                "status": "failed", 
+                "reason": "API update failed",
+                "plant_name": plant_name
+            }
+    
+    except Exception as e:
+        logger.error(f"Error in simulate_watering_and_update: {e}")
+        return {"status": "error", "error": str(e)}
+
 dag = DAG(
     'sproutsynch_polling_dag',
     default_args=default_args,
@@ -66,5 +123,13 @@ fetch_plant_data_task = PythonOperator(
     dag=dag,
 )
 
-# You can add more tasks here as needed and define dependencies
-# For example: fetch_plant_data_task >> another_task 
+# Task to test the last_watered update functionality
+test_update_task = PythonOperator(
+    task_id='test_watering_update',
+    python_callable=simulate_watering_and_update,
+    op_kwargs={'uid': SAMPLE_USER_ID},
+    dag=dag,
+)
+
+# Define task dependencies
+fetch_plant_data_task >> test_update_task 

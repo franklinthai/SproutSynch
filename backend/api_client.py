@@ -1,6 +1,6 @@
 import requests
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 def get_api_data(uid):
     """
@@ -30,6 +30,54 @@ def get_api_data(uid):
             else:
                 print(f"All {max_retries} attempts failed.")
                 raise
+
+def update_last_watered(uid, plant_name, timestamp=None):
+    """
+    Performs a PUT request to update the last_watered field for a specific plant.
+    
+    Args:
+        uid: The user ID
+        plant_name: The name of the plant that was watered
+        timestamp: Optional ISO-formatted timestamp. If None, the current UTC time is used.
+        
+    Returns:
+        bool: True if the update was successful, False otherwise
+    """
+    # API endpoint
+    url = "https://e12f-205-175-106-236.ngrok-free.app/api/water"
+    
+    # Use current UTC time if no timestamp provided
+    if timestamp is None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Prepare the data for the PUT request
+    data = {
+        "uid": uid,
+        "plant_name": plant_name,
+        "last_watered": timestamp
+    }
+    
+    # Configure retry settings
+    max_retries = 3
+    retry_delay = 2
+    
+    # Attempt the request with retries
+    for attempt in range(max_retries):
+        try:
+            response = requests.put(url, json=data)
+            response.raise_for_status()
+            
+            # Log the successful update
+            print(f"Successfully updated last_watered for plant '{plant_name}' to {timestamp}")
+            return True
+            
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+            if attempt < max_retries - 1:
+                print(f"Update failed: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print(f"All {max_retries} attempts to update last_watered failed: {e}")
+                return False
 
 def display_plant_data(uid):
     """
@@ -164,8 +212,33 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"✗ Water check failed: {e}")
     
-    # Test 4: Test retry mechanism (optional - requires mocking)
-    print("\n[TEST 4] Retry Mechanism")
+    # Test 4: Test update last_watered functionality
+    print("\n[TEST 4] Update Last Watered")
+    try:
+        # Get the first plant from the user's plants to test with
+        data = get_api_data(TEST_UID)
+        plants = data.get('plants', [])
+        
+        if plants:
+            test_plant = plants[0]
+            plant_name = test_plant.get('name', 'Test Plant')
+            
+            print(f"Testing last_watered update for plant: {plant_name}")
+            # Use current UTC time for the test
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            success = update_last_watered(TEST_UID, plant_name, current_time)
+            if success:
+                print(f"✓ Successfully updated last_watered for {plant_name} to {current_time}")
+            else:
+                print(f"✗ Failed to update last_watered for {plant_name}")
+        else:
+            print("Cannot test last_watered update: No plants found for this user.")
+    except Exception as e:
+        print(f"✗ Update last_watered test failed: {e}")
+    
+    # Test 5: Test retry mechanism (optional - requires mocking)
+    print("\n[TEST 5] Retry Mechanism")
     print("Note: This is a simulated test to demonstrate retry behavior.")
     print("To properly test retries, you would need to use mocking libraries.")
     print("For now, we'll just show how it would work in theory.")
