@@ -2,6 +2,7 @@ import time
 import logging
 import threading
 from pathlib import Path
+import platform
 
 # Configure logging
 logging.basicConfig(
@@ -20,53 +21,87 @@ pump_lock = threading.Lock()
 
 class PumpController:
     """
-    Controller for water pumps. Handles activation and deactivation of pumps.
-    In a real system, this would interface with GPIO pins on a Raspberry Pi
-    or similar hardware to control actual pumps.
+    Controller for water pumps and servo motor for pipe routing.
+    Handles activation and deactivation of pumps and controls servo position.
     """
     
     def __init__(self):
         """Initialize the pump controller and set up GPIO connections if needed."""
         self.is_initialized = False
+        self.servo_initialized = False
+        self.servo_pin = 18  # BCM 18 (GPIO 12)
+        self.pwm_frequency = 50  # 50Hz for SG90 servo
+        
         try:
-            # This is where you would initialize hardware connections
-            # For example:
-            # import RPi.GPIO as GPIO
-            # GPIO.setmode(GPIO.BCM)
-            # self.setup_pins()
+            # Check if running on actual hardware (Raspberry Pi)
+            if platform.system() == 'Linux':
+                import RPi.GPIO as GPIO
+                GPIO.setmode(GPIO.BCM)
+                
+                # Set up pump pin
+                GPIO.setup(17, GPIO.OUT)  # Main pump control pin
+                
+                # Set up servo PWM
+                GPIO.setup(self.servo_pin, GPIO.OUT)
+                self.pwm = GPIO.PWM(self.servo_pin, self.pwm_frequency)
+                self.pwm.start(0)  # Start with 0 duty cycle
+                self.servo_initialized = True
+                logger.info("Servo motor initialized on GPIO 18")
             
-            # For simulation, we just log
-            logger.info("Initializing pump controller")
             self.is_initialized = True
+            logger.info("Pump controller initialized")
         except Exception as e:
             logger.error(f"Failed to initialize pump controller: {e}")
     
-    def setup_pins(self):
-        """Set up GPIO pins for pump control."""
-        # This would configure GPIO pins on actual hardware
-        # For example:
-        # GPIO.setup(pin, GPIO.OUT)
-        pass
-    
-    def get_pin_for_pipe(self, pipe_id):
+    def _set_servo_angle(self, angle: int):
         """
-        Map pipe_id to a physical GPIO pin.
+        Set the servo motor to a specific angle.
         
         Args:
-            pipe_id: The ID of the pipe/plant
-            
-        Returns:
-            int: GPIO pin number
+            angle: Target angle (0-180 degrees)
         """
-        # This is a simplified mapping. In a real system, you'd have a proper
-        # configuration mapping pipe_ids to physical pins.
-        pipe_id_to_pin = {
-            1: 17,
-            2: 18,
-            3: 27,
-            4: 22
+        if not self.servo_initialized:
+            logger.warning("Servo motor not initialized, skipping angle setting")
+            return
+        
+        try:
+            # Calculate duty cycle (2-12% for 0-180 degrees)
+            duty = 2 + (angle / 18)
+            
+            # Set the angle
+            self.pwm.ChangeDutyCycle(duty)
+            
+            # Hold position for 0.5 seconds
+            time.sleep(0.5)
+            
+            # Reset duty cycle to avoid jitter
+            self.pwm.ChangeDutyCycle(0)
+            
+            logger.info(f"Servo motor set to {angle} degrees")
+        except Exception as e:
+            logger.error(f"Error setting servo angle: {e}")
+    
+    def select_pipe(self, pipe_id: int):
+        """
+        Rotate the servo to select a specific pipe.
+        
+        Args:
+            pipe_id: Pipe ID (0-3)
+        """
+        # Map pipe IDs to angles
+        pipe_angles = {
+            0: 0,    # Pipe 0 at 0 degrees
+            1: 45,   # Pipe 1 at 45 degrees
+            2: 90,   # Pipe 2 at 90 degrees
+            3: 135   # Pipe 3 at 135 degrees
         }
-        return pipe_id_to_pin.get(pipe_id, 17)  # Default to pin 17 if not found
+        
+        if pipe_id not in pipe_angles:
+            logger.warning(f"Unknown pipe ID: {pipe_id}, ignoring")
+            return
+        
+        angle = pipe_angles[pipe_id]
+        self._set_servo_angle(angle)
     
     def activate_pump(self, pipe_id, duration_seconds):
         """
@@ -83,14 +118,16 @@ class PumpController:
             logger.error("Cannot activate pump: Controller not initialized")
             return False
         
-        pin = self.get_pin_for_pipe(pipe_id)
-        
         try:
-            logger.info(f"Activating pump for pipe ID {pipe_id} (PIN: {pin}) for {duration_seconds} seconds")
+            logger.info(f"Activating pump for pipe ID {pipe_id} for {duration_seconds} seconds")
             
+            # First select the correct pipe using the servo
+            self.select_pipe(pipe_id)
+            
+            # Then activate the main pump
             # In a real system, you'd activate GPIO here
             # For example:
-            # GPIO.output(pin, GPIO.HIGH)
+            # GPIO.output(17, GPIO.HIGH)
             
             # Create a timer thread to deactivate after duration
             timer = threading.Timer(duration_seconds, self.deactivate_pump, args=[pipe_id])
@@ -98,7 +135,6 @@ class PumpController:
             # Store the active pump thread
             with pump_lock:
                 active_pumps[pipe_id] = {
-                    'pin': pin,
                     'start_time': time.time(),
                     'duration': duration_seconds,
                     'timer': timer
@@ -128,14 +164,13 @@ class PumpController:
                 return False
             
             pump_info = active_pumps.pop(pipe_id)
-            pin = pump_info['pin']
         
         try:
-            logger.info(f"Deactivating pump for pipe ID {pipe_id} (PIN: {pin})")
+            logger.info(f"Deactivating pump for pipe ID {pipe_id}")
             
             # In a real system, you'd deactivate GPIO here
             # For example:
-            # GPIO.output(pin, GPIO.LOW)
+            # GPIO.output(17, GPIO.LOW)
             
             active_duration = time.time() - pump_info['start_time']
             logger.info(f"Pump for pipe {pipe_id} was active for {active_duration:.2f} seconds")
@@ -149,7 +184,6 @@ class PumpController:
         """Get a list of currently active pumps."""
         with pump_lock:
             return {pid: {
-                'pin': info['pin'],
                 'duration': info['duration'],
                 'elapsed': time.time() - info['start_time']
             } for pid, info in active_pumps.items()}
@@ -178,11 +212,22 @@ class PumpController:
         # Stop all active pumps first
         self.emergency_stop()
         
+        # Clean up servo PWM
+        if self.servo_initialized:
+            try:
+                self.pwm.stop()
+                logger.info("Servo PWM stopped")
+            except Exception as e:
+                logger.error(f"Error stopping servo PWM: {e}")
+        
         # Then release GPIO resources in a real system
-        # For example:
-        # GPIO.cleanup()
-        logger.info("Pump controller resources cleaned up")
-
+        if platform.system() == 'Linux':
+            try:
+                import RPi.GPIO as GPIO
+                GPIO.cleanup()
+                logger.info("GPIO resources cleaned up")
+            except Exception as e:
+                logger.error(f"Error cleaning up GPIO: {e}")
 
 # Create a singleton instance to be used by other modules
 controller = PumpController()
@@ -236,51 +281,42 @@ if __name__ == "__main__":
     print("SproutSynch Hardware Controller - Test Script")
     print("=" * 50)
     
-    # Test 1: Activate a pump
-    print("\n[TEST 1] Activate Pump")
-    pipe_id = 1
-    duration = 5  # 5 seconds
+    # Test 1: Test servo movement without pump
+    print("\n[TEST 1] Test Servo Movement (No Pump)")
+    print("Testing servo movement for each pipe position...")
+    for pipe_id in range(4):
+        print(f"\nMoving to pipe {pipe_id} position...")
+        controller.select_pipe(pipe_id)
+        time.sleep(2)  # Longer delay to observe movement
     
-    print(f"Activating pump for pipe {pipe_id} for {duration} seconds...")
-    result = activate_pump(pipe_id, duration)
-    print(f"Activation {'successful' if result else 'failed'}")
+    # Test 2: Sequential pipe activation with pump
+    print("\n[TEST 2] Sequential Pipe Activation")
+    print("Testing each pipe with pump activation...")
     
-    # Test 2: Get active pumps
-    print("\n[TEST 2] Get Active Pumps")
-    print("Waiting 2 seconds...")
-    time.sleep(2)
+    for pipe_id in range(4):
+        print(f"\nActivating pipe {pipe_id}:")
+        print("1. Moving servo to position...")
+        controller.select_pipe(pipe_id)
+        time.sleep(1)  # Wait for servo to settle
+        
+        print("2. Activating pump for 3 seconds...")
+        result = activate_pump(pipe_id, 3)
+        print(f"   Pump activation {'successful' if result else 'failed'}")
+        
+        print("3. Waiting for pump to complete...")
+        time.sleep(3.5)  # Wait for pump duration plus a small buffer
+        
+        active = get_active_pumps()
+        print(f"   Active pumps: {active}")
+        time.sleep(1)  # Brief pause between pipes
     
-    active = get_active_pumps()
-    print(f"Active pumps: {active}")
+    # Test 3: Emergency stop
+    print("\n[TEST 3] Emergency Stop Test")
+    print("Activating multiple pipes...")
     
-    # Test 3: Wait for deactivation
-    print("\n[TEST 3] Wait for Auto-Deactivation")
-    print(f"Waiting for pump to deactivate (remaining {duration - 2} seconds)...")
-    time.sleep(duration - 1)  # Allow a little extra time for the pump to deactivate
-    
-    active = get_active_pumps()
-    print(f"Active pumps after waiting: {active}")
-    
-    # Test 4: Manual deactivation (for another pump)
-    print("\n[TEST 4] Manual Deactivation")
-    pipe_id = 2
-    print(f"Activating pump for pipe {pipe_id} for 10 seconds...")
-    activate_pump(pipe_id, 10)
-    
-    print("Waiting 2 seconds...")
-    time.sleep(2)
-    
-    print(f"Manually deactivating pump for pipe {pipe_id}...")
-    deactivate_pump(pipe_id)
-    
-    active = get_active_pumps()
-    print(f"Active pumps after manual deactivation: {active}")
-    
-    # Test 5: Emergency stop (with multiple pumps)
-    print("\n[TEST 5] Emergency Stop")
-    print("Activating multiple pumps...")
-    activate_pump(1, 30)
-    activate_pump(3, 30)
+    # Activate pipes 0 and 2
+    activate_pump(0, 10)
+    activate_pump(2, 10)
     
     print("Waiting 2 seconds...")
     time.sleep(2)
@@ -290,6 +326,10 @@ if __name__ == "__main__":
     
     active = get_active_pumps()
     print(f"Active pumps after emergency stop: {active}")
+    
+    # Clean up
+    print("\nCleaning up resources...")
+    controller.cleanup()
     
     print("\nTest completed!")
     print("=" * 50) 
