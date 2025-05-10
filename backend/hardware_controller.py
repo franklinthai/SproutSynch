@@ -21,8 +21,8 @@ pump_lock = threading.Lock()
 
 class PumpController:
     """
-    Controller for water pumps and servo motor for pipe routing.
-    Handles activation and deactivation of pumps and controls servo position.
+    Controller for water pumps and continuous rotation servo for pipe routing.
+    Handles activation and deactivation of pumps and controls servo rotation.
     """
     
     def __init__(self):
@@ -31,6 +31,7 @@ class PumpController:
         self.servo_initialized = False
         self.servo_pin = 18  # BCM 18 (GPIO 12)
         self.pwm_frequency = 50  # 50Hz for SG90 servo
+        self.current_pipe_id = 0  # Track current pipe position
         
         try:
             # Check if running on actual hardware (Raspberry Pi)
@@ -53,55 +54,76 @@ class PumpController:
         except Exception as e:
             logger.error(f"Failed to initialize pump controller: {e}")
     
-    def _set_servo_angle(self, angle: int):
+    def _spin_servo(self, direction: str, speed: float, duration: float):
         """
-        Set the servo motor to a specific angle.
+        Spin the continuous rotation servo in the specified direction.
         
         Args:
-            angle: Target angle (0-180 degrees)
+            direction: "cw" for clockwise, "ccw" for counter-clockwise
+            speed: Speed factor from 0 to 1
+            duration: How long to spin in seconds
         """
         if not self.servo_initialized:
-            logger.warning("Servo motor not initialized, skipping angle setting")
+            logger.warning("Servo motor not initialized, skipping rotation")
             return
         
         try:
-            # Calculate duty cycle (2-12% for 0-180 degrees)
-            duty = 2 + (angle / 18)
+            # Calculate duty cycle based on direction and speed
+            if direction.lower() == "cw":
+                duty = 7.5 - (1.5 * speed)
+            else:  # ccw
+                duty = 7.5 + (1.5 * speed)
             
-            # Set the angle
+            # Set the rotation
             self.pwm.ChangeDutyCycle(duty)
             
-            # Hold position for 0.5 seconds
-            time.sleep(0.5)
+            # Hold for specified duration
+            time.sleep(duration)
             
-            # Reset duty cycle to avoid jitter
+            # Reset duty cycle to stop rotation
             self.pwm.ChangeDutyCycle(0)
             
-            logger.info(f"Servo motor set to {angle} degrees")
+            logger.info(f"Servo rotated {direction} at speed {speed} for {duration}s")
         except Exception as e:
-            logger.error(f"Error setting servo angle: {e}")
+            logger.error(f"Error rotating servo: {e}")
     
     def select_pipe(self, pipe_id: int):
         """
-        Rotate the servo to select a specific pipe.
+        Rotate the servo to select a specific pipe using timed rotation.
         
         Args:
-            pipe_id: Pipe ID (0-3)
+            pipe_id: Target pipe ID (0-3)
         """
-        # Map pipe IDs to angles
-        pipe_angles = {
-            0: 0,    # Pipe 0 at 0 degrees
-            1: 45,   # Pipe 1 at 45 degrees
-            2: 90,   # Pipe 2 at 90 degrees
-            3: 135   # Pipe 3 at 135 degrees
-        }
-        
-        if pipe_id not in pipe_angles:
-            logger.warning(f"Unknown pipe ID: {pipe_id}, ignoring")
+        if pipe_id not in range(4):
+            logger.warning(f"Invalid pipe ID: {pipe_id}, ignoring")
             return
         
-        angle = pipe_angles[pipe_id]
-        self._set_servo_angle(angle)
+        # Calculate number of steps needed
+        steps = (pipe_id - self.current_pipe_id) % 4
+        
+        if steps == 0:
+            logger.info(f"Already at pipe {pipe_id}")
+            return
+        
+        # Determine direction (cw if target > current, else ccw)
+        direction = "cw" if steps <= 2 else "ccw"
+        if direction == "ccw":
+            steps = 4 - steps
+        
+        logger.info(f"Moving from pipe {self.current_pipe_id} to {pipe_id} ({steps} steps {direction})")
+        
+        # Move one step at a time
+        for _ in range(steps):
+            self._spin_servo(
+                direction=direction,
+                speed=0.3,  # Low speed for precise movement
+                duration=0.25  # Short duration per step
+            )
+            time.sleep(0.1)  # Brief pause between steps
+        
+        # Update current position
+        self.current_pipe_id = pipe_id
+        logger.info(f"Now at pipe {pipe_id}")
     
     def activate_pump(self, pipe_id, duration_seconds):
         """
@@ -284,14 +306,18 @@ if __name__ == "__main__":
     # Test 1: Test servo movement without pump
     print("\n[TEST 1] Test Servo Movement (No Pump)")
     print("Testing servo movement for each pipe position...")
+    print("Note: Movement is timing-based, not angle-based")
+    print("Duration and speed per step may need tuning based on hardware")
+    
     for pipe_id in range(4):
         print(f"\nMoving to pipe {pipe_id} position...")
         controller.select_pipe(pipe_id)
-        time.sleep(2)  # Longer delay to observe movement
+        time.sleep(1)  # Wait to observe movement
     
     # Test 2: Sequential pipe activation with pump
     print("\n[TEST 2] Sequential Pipe Activation")
     print("Testing each pipe with pump activation...")
+    print("Note: Servo will rotate to each position before pump activation")
     
     for pipe_id in range(4):
         print(f"\nActivating pipe {pipe_id}:")
