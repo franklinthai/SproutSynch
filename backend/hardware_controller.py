@@ -3,6 +3,8 @@ import logging
 import threading
 from pathlib import Path
 import platform
+import time
+import RPi.GPIO as GPIO
 
 # Configure logging
 logging.basicConfig(
@@ -36,7 +38,7 @@ class PumpController:
         try:
             # Check if running on actual hardware (Raspberry Pi)
             if platform.system() == 'Linux':
-                import RPi.GPIO as GPIO
+                # import RPi.GPIO as GPIO
                 GPIO.setmode(GPIO.BCM)
                 
                 # Set up pump pin
@@ -116,10 +118,10 @@ class PumpController:
         for _ in range(steps):
             self._spin_servo(
                 direction=direction,
-                speed=0.3,  # Low speed for precise movement
-                duration=0.25  # Short duration per step
+                speed=3,  # Low speed for precise movement
+                duration=1  # Short duration per step
             )
-            time.sleep(0.1)  # Brief pause between steps
+            time.sleep(0.5)  # Brief pause between steps
         
         # Update current position
         self.current_pipe_id = pipe_id
@@ -299,63 +301,94 @@ def get_active_pumps():
 
 if __name__ == "__main__":
     # Simple test script for hardware controller
+    print("SproutSynch Servo Direct Spin Test")
+    print("=" * 50)
+
+    if controller.servo_initialized:
+        print("Spinning servo (CW) at duty cycle 6 for 10 seconds...")
+
+        controller.pwm.ChangeDutyCycle(6)  # Slightly CW
+        time.sleep(10)
+        controller.pwm.ChangeDutyCycle(0)  # Stop
+        controller.cleanup()
+        print("Done.")
+    else:
+        print("Servo not initialized. Skipping.")
     
     print("SproutSynch Hardware Controller - Test Script")
     print("=" * 50)
     
-    # Test 1: Test servo movement without pump
-    print("\n[TEST 1] Test Servo Movement (No Pump)")
-    print("Testing servo movement for each pipe position...")
-    print("Note: Movement is timing-based, not angle-based")
-    print("Duration and speed per step may need tuning based on hardware")
+    # # Test 1: Test servo movement without pump
+    # print("\n[TEST 1] Test Servo Movement (No Pump)")
+    # print("Testing servo movement for each pipe position...")
+    # print("Note: Movement is timing-based, not angle-based")
+    # print("Duration and speed per step may need tuning based on hardware")
     
-    for pipe_id in range(4):
-        print(f"\nMoving to pipe {pipe_id} position...")
-        controller.select_pipe(pipe_id)
-        time.sleep(1)  # Wait to observe movement
+    # for pipe_id in range(4):
+    #     print(f"\nMoving to pipe {pipe_id} position...")
+    #     controller.select_pipe(pipe_id)
+    #     time.sleep(2)  # Wait to observe movement
     
-    # Test 2: Sequential pipe activation with pump
-    print("\n[TEST 2] Sequential Pipe Activation")
-    print("Testing each pipe with pump activation...")
-    print("Note: Servo will rotate to each position before pump activation")
+    # # Test 2: Sequential pipe activation with pump
+    # print("\n[TEST 2] Sequential Pipe Activation")
+    # print("Testing each pipe with pump activation...")
+    # print("Note: Servo will rotate to each position before pump activation")
     
-    for pipe_id in range(4):
-        print(f"\nActivating pipe {pipe_id}:")
-        print("1. Moving servo to position...")
-        controller.select_pipe(pipe_id)
-        time.sleep(1)  # Wait for servo to settle
+    # for pipe_id in range(4):
+    #     print(f"\nActivating pipe {pipe_id}:")
+    #     print("1. Moving servo to position...")
+    #     controller.select_pipe(pipe_id)
+    #     time.sleep(1)  # Wait for servo to settle
         
-        print("2. Activating pump for 3 seconds...")
-        result = activate_pump(pipe_id, 3)
-        print(f"   Pump activation {'successful' if result else 'failed'}")
+    #     print("2. Activating pump for 3 seconds...")
+    #     result = activate_pump(pipe_id, 3)
+    #     print(f"   Pump activation {'successful' if result else 'failed'}")
         
-        print("3. Waiting for pump to complete...")
-        time.sleep(3.5)  # Wait for pump duration plus a small buffer
+    #     print("3. Waiting for pump to complete...")
+    #     time.sleep(3.5)  # Wait for pump duration plus a small buffer
         
-        active = get_active_pumps()
-        print(f"   Active pumps: {active}")
-        time.sleep(1)  # Brief pause between pipes
+    #     active = get_active_pumps()
+    #     print(f"   Active pumps: {active}")
+    #     time.sleep(1)  # Brief pause between pipes
     
-    # Test 3: Emergency stop
-    print("\n[TEST 3] Emergency Stop Test")
-    print("Activating multiple pipes...")
+    # # Test 3: Emergency stop
+    # print("\n[TEST 3] Emergency Stop Test")
+    # print("Activating multiple pipes...")
     
-    # Activate pipes 0 and 2
-    activate_pump(0, 10)
-    activate_pump(2, 10)
+    # # Activate pipes 0 and 2
+    # activate_pump(0, 10)
+    # activate_pump(2, 10)
     
-    print("Waiting 2 seconds...")
-    time.sleep(2)
+    # print("Waiting 2 seconds...")
+    # time.sleep(2)
     
-    print("Performing emergency stop...")
-    emergency_stop()
+    # print("Performing emergency stop...")
+    # emergency_stop()
     
-    active = get_active_pumps()
-    print(f"Active pumps after emergency stop: {active}")
+    # active = get_active_pumps()
+    # print(f"Active pumps after emergency stop: {active}")
     
-    # Clean up
-    print("\nCleaning up resources...")
-    controller.cleanup()
+    # # Clean up
+    # print("\nCleaning up resources...")
+    # controller.cleanup()
     
-    print("\nTest completed!")
-    print("=" * 50) 
+    # print("\nTest completed!")
+    # print("=" * 50) 
+
+    SERVO_PIN = 18  # BCM numbering (pin 12)
+    FREQ = 50       # 50Hz for SG90
+    DUTY_CYCLE = 6  # Slightly clockwise (7.5 is stop)
+
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(SERVO_PIN, GPIO.OUT)
+
+    pwm = GPIO.PWM(SERVO_PIN, FREQ)
+    pwm.start(DUTY_CYCLE)
+
+    print("Spinning servo for 10 seconds...")
+    time.sleep(10)
+
+    pwm.ChangeDutyCycle(0)  # Stop rotation
+    pwm.stop()
+    GPIO.cleanup()
+    print("Done.")
