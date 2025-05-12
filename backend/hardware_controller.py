@@ -298,34 +298,58 @@
 #         dict: Dictionary of active pumps
 #     """
 #     return controller.get_active_pumps()
-import time
-import logging
-import threading
-from pathlib import Path
-import platform
+
 import time
 import RPi.GPIO as GPIO
 
-if __name__ == "__main__":
-    print("SproutSynch Servo Direct Spin Test")
-    print("=" * 50)
-
-    # Set up GPIO
-    GPIO.setmode(GPIO.BCM)
-    SERVO_PIN = 18  # BCM 18 (GPIO 12)
-    GPIO.setup(SERVO_PIN, GPIO.OUT)
-
-    # Create PWM instance
-    pwm = GPIO.PWM(SERVO_PIN, 50)  # 50Hz frequency
-    pwm.start(0)  # Start with 0 duty cycle
-
+def test_gpio_pin(pin):
+    """Test a single GPIO pin by setting it as output and toggling it."""
     try:
-        print("Starting continuous rotation...")
-        pwm.ChangeDutyCycle(9.0)  # Set to spin clockwise
-        time.sleep(10)  # Spin for 10 seconds
-    finally:
-        print("Stopping servo...")
-        pwm.ChangeDutyCycle(0)  # Stop rotation
-        pwm.stop()
-        GPIO.cleanup()
-        print("Done.")
+        print(f"Testing GPIO {pin}...")
+        GPIO.setup(pin, GPIO.OUT)
+        
+        # Test HIGH
+        GPIO.output(pin, GPIO.HIGH)
+        time.sleep(0.5)
+        
+        # Test LOW
+        GPIO.output(pin, GPIO.LOW)
+        time.sleep(0.5)
+        
+        print(f"GPIO {pin} test completed successfully")
+        return True
+    except Exception as e:
+        print(f"Error testing GPIO {pin}: {e}")
+        return False
+
+if __name__ == "__main__":
+    print("GPIO Pin Test")
+    print("=" * 50)
+    print("This script will test all GPIO pins with nothing connected.")
+    print("Make sure no hardware is connected to the GPIO pins!")
+    print("=" * 50)
+    
+    # Initialize GPIO
+    GPIO.setmode(GPIO.BCM)
+    
+    # List of GPIO pins to test (excluding power and ground pins)
+    test_pins = [2, 3, 4, 17, 27, 22, 10, 9, 11, 5, 6, 13, 19, 26, 14, 15, 18, 23, 24, 25, 8, 7, 12, 16, 20, 21]
+    
+    print("\nStarting pin tests...")
+    failed_pins = []
+    
+    for pin in test_pins:
+        if not test_gpio_pin(pin):
+            failed_pins.append(pin)
+    
+    # Cleanup
+    GPIO.cleanup()
+    
+    print("\nTest Results:")
+    print("=" * 50)
+    if failed_pins:
+        print(f"Failed pins: {failed_pins}")
+        print("These pins may be damaged or have issues.")
+    else:
+        print("All pins tested successfully!")
+    print("=" * 50)
