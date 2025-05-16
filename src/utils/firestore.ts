@@ -1,17 +1,44 @@
 import { db } from "./firebaseconfig"
 import { NextResponse } from 'next/server'
-import { getDocs, getDoc, collection, addDoc, where, query, doc, updateDoc, orderBy} from "firebase/firestore";
+import { getDocs, getDoc, collection, addDoc, where, query, doc, updateDoc, orderBy, deleteDoc } from "firebase/firestore";
 const { DateTime } = require("luxon");
 
-
+// Returns the pipes field for the provided user
+// Parameters:
+//   - uid: the id of the user
 export async function fetchFirestorePipes(uid) {
-    const docRef = doc(db, "users", uid);
-    const docSnapshot = await getDoc(docRef);
-    if (docSnapshot) {
-        return docSnapshot.data().pipes;
-    } else return 0;
+    try {
+        const docRef = doc(db, "users", uid);
+        const docSnapshot = await getDoc(docRef);
+        if (docSnapshot) {
+            return docSnapshot.data().pipes;
+        } else return 0;
+    } catch (error) {
+        alert(error);
+    }
 }
 
+// Deletes the provided plant belonging to the provided user
+// Parameters:
+//   - uid: the id of the user
+//   - pid: the id of the plant
+export async function deleteFirestore(uid, pid) {
+    try {
+        await deleteDoc(doc(db, "users", uid, "plants", pid));
+    } catch (error) {
+        alert(error);
+    }
+}
+
+// Adds a plant for a specific user
+// Parameters:
+//   - uid: the id of the user
+//   - name: the name of the plant
+//   - species: the species of the plant
+//   - interval: the plant's watering time interval
+//   - time: an int from 1-12 representing the time of day to water the plant
+//   - ampm: indicates whether the time is am or pm
+//   - duration: the amount of seconds the plant is watered for during each watering
 export async function addFirestore(uid, name, species, interval, time, ampm, duration) {
     try {
         // double check that the time interval and duration numbers are valid
@@ -56,37 +83,62 @@ export async function addFirestore(uid, name, species, interval, time, ampm, dur
         });
     } catch (error) {
         alert(error); 
-        throw error;
     } 
 }
 
+// Returns a plant record, with all of the plant's data, as well as an id field with the plant's id.
+// Parameters:
+//   - name: the name of the plant
+//   - uid: the id of the user
 export async function fetchPlantByName(name, uid) {
-    const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
-    const querySnapshot = await getDocs(plantQuery);
-    const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    return plant[0];
-}
-
-export async function fetchFirestore(uid) {
-    const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
-    const plantArr = [];
-    querySnapshot.forEach((doc) => {
-        plantArr.push({ id: doc.id, ...doc.data()});
-    });
-    return plantArr;
-}
-
-export async function updateActive(uid, id, active) {
     try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { active: active });
+        const plantQuery = query(collection(db, "users", uid, "plants"), where("name", "==", name));
+        const querySnapshot = await getDocs(plantQuery);
+        const plant = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        return plant[0];
     } catch (error) {
         alert(error);
     }
 }
 
-export async function updateLastWatered(uid, id, time) {
+// Returns an array of all of the plants for a given user. Each item of the array is a plant record, 
+// with all of the plant's data, as well as an id field with the plant's id.
+// Parameters:
+//   - uid: the id of the user
+export async function fetchFirestoreByUser(uid) {
     try {
-        await updateDoc(doc(db, "users", uid, "plants", id), { last_watered: time });
+        const querySnapshot = await getDocs(query(collection(db, "users", uid, "plants"), orderBy("name", "asc")));
+        const plantArr = [];
+        querySnapshot.forEach((doc) => {
+            plantArr.push({ id: doc.id, ...doc.data()});
+        });
+        return plantArr;
+    } catch (error) {
+        alert(error);
+    }
+}
+
+// Updates the active field on a plant to turn it on/off.
+// Parameters: 
+//   - uid: the id of the user
+//   - pid: the id of the plant
+//   - active: a boolean indicating the new active state of the plant
+export async function updateActive(uid, pid, active) {
+    try {
+        await updateDoc(doc(db, "users", uid, "plants", pid), { active: active })
+    } catch (error) {
+        alert(error);
+    }
+}
+
+// Updates the last watered field of a user's plant with a new time
+// Parameters:
+//   - uid: the id of the user
+//   - pid: the id of the plant
+//   - time: the time that the plant was last watered, a UTC time in ISO format
+export async function updateLastWatered(uid, pid, time) {
+    try {
+        await updateDoc(doc(db, "users", uid, "plants", pid), { last_watered: time });
     } catch (error) {
         return NextResponse.json({ error: "failed to update database: " + error }, { status: 500 });
     }

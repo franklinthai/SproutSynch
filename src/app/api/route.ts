@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchFirestore, updateLastWatered, fetchPlantByName } from '@/utils/firestore'
+import { fetchFirestoreByUser, updateLastWatered, fetchPlantByName } from '@/utils/firestore'
 
 
 // function to get plants from a user
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     
-    const plantArr = await fetchFirestore(uid);
+    const plantArr = await fetchFirestoreByUser(uid);
     // naive send all plants maybe parse depneding on pipe id
     console.log(plantArr);
     // 500, 400 etc return status code given different requests.

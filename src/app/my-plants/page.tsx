@@ -14,7 +14,7 @@ import { Box, Modal, ThemeProvider, ClickAwayListener } from "@mui/material";
 import EditPopup from "./editpopup";
 import { onAuthStateChanged } from "firebase/auth";
 import PipesPopup from "./pipespopup";
-import { fetchFirestore, updateActive } from "@/utils/firestore";
+import { fetchFirestoreByUser, updateActive } from "@/utils/firestore";
 import { fetchFirestorePipes } from "@/utils/firestore";
 
 const theme = createTheme({
@@ -47,7 +47,7 @@ export default function MyPlants() {
         });
 
         async function fetchData(userid) {
-            const data = await fetchFirestore(userid);
+            const data = await fetchFirestoreByUser(userid);
             setPlantArr(data);
             const num = await fetchFirestorePipes(userid);
             setPipes(num);
@@ -72,6 +72,11 @@ export default function MyPlants() {
         setPlantArr((prevPlants) =>
             prevPlants.map((plant) => (plant.id === updatedPlant.id ? updatedPlant : plant))
         );
+    }
+
+    const handleRemove = (pid) => {
+        handleClose();
+        setPlantArr(arr => arr.filter(plant => plant.id !== pid));
     }
 
     return <div className="flex flex-col items-center">
@@ -153,7 +158,7 @@ export default function MyPlants() {
                     style={{ border: "none"}}
                 >
                     {selectedPlant && (
-                        <EditPopup plantId={selectedPlant.name} pipes={pipes} uid={uid} handleClose={handleClose} handleUpdate={updateCard}/>
+                        <EditPopup plantName={selectedPlant.name} pipes={pipes} uid={uid} handleClose={handleClose} handleUpdate={updateCard} handleRemove={handleRemove}/>
                     )}
                 </Box>
             </Modal></>}

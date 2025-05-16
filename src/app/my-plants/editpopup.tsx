@@ -8,12 +8,13 @@ import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import plantIcon from "./../../../assets/plantIcon.png";
 import { getDocs, collection, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../../utils/firebaseconfig";
-import { fetchPlantByName } from "@/utils/firestore";
+import { fetchPlantByName, deleteFirestore } from "@/utils/firestore";
 import { MenuItem, Select } from "@mui/material";
 
 const titleStyle = {
@@ -38,29 +39,30 @@ const gridItemStyle = {
 };
 
 interface EditPopupProps {
-  plantId: string;
+  plantName: string;
   pipes: string;
   uid: string;
   handleClose: () => void;
   handleUpdate: (updatedPlant: any) => void;
+  handleRemove: (pid: any) => void;
 }
 
-export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpdate}: EditPopupProps) {
+export default function EditPopup({ plantName, pipes, uid, handleClose, handleUpdate, handleRemove}: EditPopupProps) {
   const [plant, setPlant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedPlant, setUpdatedPlant] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
-      const data = await fetchPlantByName(plantId, uid);
+      const data = await fetchPlantByName(plantName, uid);
       setPlant(data);
       setUpdatedPlant(data); // Initialize updatedPlant with fetched data
     }
 
-    if (plantId) {
+    if (plantName) {
       fetchData();
     }
-  }, [plantId]);
+  }, [plantName]);
 
   const handleEditToggle = () => {
     if (!isEditing) {
@@ -99,6 +101,17 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
     }
   };
 
+  const handleDelete = async () => {
+    if (confirm("Are you sure you want to delete this plant?")) {
+      try {
+        await deleteFirestore(uid, plant.id);
+        handleRemove(plant.id)
+      } catch (error) {
+        alert(error);
+      }
+    }
+  }
+
   const handleChange = (field, value) => {
     setUpdatedPlant((prev) => ({
       ...prev,
@@ -131,6 +144,7 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
         title={
           <Typography variant="h6" component="div" sx={{ display: "flex", alignItems: "center" }}>
             {plant.name}
+            
             <IconButton
               aria-label={isEditing ? "save" : "edit"}
               size="small"
@@ -139,6 +153,15 @@ export default function EditPopup({ plantId, pipes, uid, handleClose, handleUpda
             >
               {isEditing ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
             </IconButton>
+
+            {isEditing ? <IconButton
+              aria-label="delete"
+              size="small"
+              sx={{ ml: 1 }}
+              onClick={isEditing ? handleDelete : null}
+            >
+              <DeleteIcon fontSize="small"/>
+            </IconButton> : <></>}
           </Typography>
         }
       />
