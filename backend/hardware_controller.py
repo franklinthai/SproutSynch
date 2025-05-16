@@ -323,33 +323,69 @@ def test_gpio_pin(pin):
         return False
 
 if __name__ == "__main__":
-    print("GPIO Pin Test")
+    import serial
+    import serial.tools.list_ports
+    import time
+
+    print("Arduino Connection Test")
     print("=" * 50)
-    print("This script will test all GPIO pins with nothing connected.")
-    print("Make sure no hardware is connected to the GPIO pins!")
-    print("=" * 50)
+
+    # Step 1: Check for Arduino connection
+    print("\n1. Checking for Arduino connection...")
+    arduino_ports = [p for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
     
-    # Initialize GPIO
-    GPIO.setmode(GPIO.BCM)
+    if not arduino_ports:
+        print("No Arduino found! Please check USB connection.")
+        exit(1)
     
-    # List of GPIO pins to test (excluding power and ground pins)
-    test_pins = [2, 3, 4, 17, 27, 22, 10, 9, 11, 5, 6, 13, 19, 26, 14, 15, 18, 23, 24, 25, 8, 7, 12, 16, 20, 21]
-    
-    print("\nStarting pin tests...")
-    failed_pins = []
-    
-    for pin in test_pins:
-        if not test_gpio_pin(pin):
-            failed_pins.append(pin)
-    
-    # Cleanup
-    GPIO.cleanup()
-    
-    print("\nTest Results:")
-    print("=" * 50)
-    if failed_pins:
-        print(f"Failed pins: {failed_pins}")
-        print("These pins may be damaged or have issues.")
-    else:
-        print("All pins tested successfully!")
-    print("=" * 50)
+    arduino_port = arduino_ports[0].device
+    print(f"Found Arduino on port: {arduino_port}")
+
+    # Step 2: Test communication
+    print("\n2. Testing communication with Arduino...")
+    try:
+        ser = serial.Serial(arduino_port, 9600, timeout=1)
+        time.sleep(2)  # Wait for Arduino to reset
+        
+        # Send a test command and read response
+        ser.write(b'1\n')
+        time.sleep(1)
+        response = ser.readline().decode().strip()
+        print(f"Arduino response: {response}")
+        
+        if response:
+            print("Communication test successful!")
+        else:
+            print("No response from Arduino!")
+            exit(1)
+            
+    except Exception as e:
+        print(f"Error communicating with Arduino: {e}")
+        exit(1)
+
+    # # Step 3: Test servo control
+    # print("\n3. Testing servo control...")
+    # try:
+    #     # Test position 1 (60 degrees)
+    #     print("Moving to position 1 (60 degrees)...")
+    #     ser.write(b'1\n')
+    #     time.sleep(2)
+        
+    #     # Test position 2 (160 degrees)
+    #     print("Moving to position 2 (160 degrees)...")
+    #     ser.write(b'2\n')
+    #     time.sleep(2)
+        
+    #     # Return to position 0
+    #     print("Returning to position 0...")
+    #     ser.write(b'0\n')
+    #     time.sleep(2)
+        
+    #     print("Servo control test completed!")
+        
+    # except Exception as e:
+    #     print(f"Error controlling servo: {e}")
+    #     exit(1)
+    finally:
+        ser.close()
+        print("\nAll tests completed!")
