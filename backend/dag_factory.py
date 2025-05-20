@@ -51,7 +51,7 @@ def generate_plant_watering_dag(plant_id, plant_name, interval_hours, duration_s
     dag_id = f"water_plant_{plant_id}"
     description = f"Water plant: {plant_name} (every {interval_hours} hours for {duration_seconds} seconds)"
     
-    # Convert interval hours to a cron expression (e.g., 5 hours = */5 * * * *)
+    # Convert interval hours to a cron expression
     if interval_hours < 24:
         schedule = f"0 */{interval_hours} * * *"
     else:
@@ -77,6 +77,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.append(str(backend_path))
 from api_client import update_last_watered
+from hardware_controller import water_plant
 
 # Get the user ID from the environment variable
 USER_UID = "{USER_UID}"
@@ -86,14 +87,9 @@ def water_plant_{plant_id}(**kwargs):
     logger = logging.getLogger("airflow.task")
     logger.info(f"Watering plant {plant_name} (ID: {plant_id}) for {duration_seconds} seconds")
     
-    watering_successful = False
-    
     try:
-        # Import the hardware controller module
-        from hardware_controller import activate_pump
-        
-        # Activate the pump for the specified duration
-        watering_successful = activate_pump(pipe_id={plant_id}, duration_seconds={duration_seconds})
+        # Water the plant using the hardware controller
+        watering_successful = water_plant(pipe_id={plant_id}, duration_seconds={duration_seconds})
         
         if watering_successful:
             logger.info(f"Successfully watered plant {plant_name}")
