@@ -374,12 +374,23 @@ if __name__ == "__main__":
     # Step 1: Check for Arduino connection
     print("\n1. Checking for Arduino connection...")
     arduino_ports = [p for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
+
+    arduino_port = ""
     
     if not arduino_ports:
-        print("No Arduino found! Please check USB connection.")
-        exit(1)
+        print("No Arduino found! Testing fallback.")
+        if not arduino_ports:
+            # Try matching by vendor ID or product ID if needed
+            flag = False
+            for p in serial.tools.list_ports.comports():
+                flag = True
+                arduino_port = p.device
+                print(p.device, p.description, p.vid, p.pid)
+            if not flag:
+                print("Still error")
+                exit(1)
     
-    arduino_port = arduino_ports[0].device
+    # arduino_port = arduino_ports[0].device
     print(f"Found Arduino on port: {arduino_port}")
 
     # Step 2: Test communication
@@ -410,15 +421,15 @@ if __name__ == "__main__":
     #     ser.write(b'1\n')
     #     time.sleep(2)
         
-    #     # Test position 2 (160 degrees)
-    #     print("Moving to position 2 (160 degrees)...")
-    #     ser.write(b'2\n')
-    #     time.sleep(2)
+        # Test position 2 (160 degrees)
+        print("Moving to position 2 (160 degrees)...")
+        ser.write(b'2\n')
+        time.sleep(5)
         
-    #     # Return to position 0
-    #     print("Returning to position 0...")
-    #     ser.write(b'0\n')
-    #     time.sleep(2)
+        # Return to position 0
+        print("Returning to position 0...")
+        ser.write(b'0\n')
+        time.sleep(5)
         
     #     print("Servo movement test completed!")
         
