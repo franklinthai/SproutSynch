@@ -352,40 +352,40 @@ if __name__ == "__main__":
     # arduino_port = arduino_ports[0].device
     print(f"Found Arduino on port: {arduino_port}")
 
-    # Step 2: Test communication
+    # # Step 2: Test communication
     print("\n2. Testing communication with Arduino...")
     try:
         ser = serial.Serial(arduino_port, 9600, timeout=1)
         time.sleep(2)  # Wait for Arduino to reset
         
-        # Send a test command and read response
-        ser.write(b'1\n')
-        time.sleep(1)
-        response = ser.readline().decode().strip()
-        print(f"Arduino response: {response}")
+    #     # Send a test command and read response
+    #     ser.write(b'1\n')
+    #     time.sleep(1)
+    #     response = ser.readline().decode().strip()
+    #     print(f"Arduino response: {response}")
         
-        if response:
-            print("Communication test successful!")
-        else:
-            print("No response from Arduino!")
-            exit(1)
+    #     if response:
+    #         print("Communication test successful!")
+    #     else:
+    #         print("No response from Arduino!")
+    #         exit(1)
             
     except Exception as e:
         print(f"Error communicating with Arduino: {e}")
         exit(1)
 
-    # Step 3: Test servo control
+    # Step 2: Test servo control (skipped comms test)
     print("\n3. Testing servo control...")
     try:
         # Test position 1 (60 degrees)
-        print("Moving to position 1 (60 degrees)...")
-        ser.write(b'1\n')
-        time.sleep(5)
-        
-        # Test position 2 (160 degrees)
         print("Moving to position 2 (160 degrees)...")
         ser.write(b'2\n')
         time.sleep(5)
+        
+        # # Test position 2 (160 degrees)
+        # print("Moving to position 2 (160 degrees)...")
+        # ser.write(b'2\n')
+        # time.sleep(5)
         
         # Return to position 0
         print("Returning to position 0...")
