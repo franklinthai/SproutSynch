@@ -322,13 +322,54 @@ def test_gpio_pin(pin):
         print(f"Error testing GPIO {pin}: {e}")
         return False
 
+def water_plant(pipe_id, duration_seconds):
+    """
+    Water a specific plant using its pipe_id.
+    
+    Args:
+        pipe_id: The ID of the pipe/plant to water
+        duration_seconds: How long to run the pump in seconds
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # First select the correct pipe using the servo
+        controller.select_pipe(pipe_id)
+        
+        # Then activate the pump for the specified duration
+        success = controller.activate_pump(pipe_id, duration_seconds)
+        
+        if success:
+            logger.info(f"Successfully watered plant at pipe {pipe_id} for {duration_seconds} seconds")
+            return True
+        else:
+            logger.error(f"Failed to water plant at pipe {pipe_id}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error watering plant at pipe {pipe_id}: {e}")
+        return False
+
 if __name__ == "__main__":
     import serial
     import serial.tools.list_ports
     import time
+    import os
+    from pathlib import Path
+    import dotenv
 
-    print("Arduino Connection Test")
+    print("Hardware Controller Test")
     print("=" * 50)
+
+    # Load environment variables
+    dotenv_path = Path(__file__).parent / ".env"
+    dotenv.load_dotenv(dotenv_path)
+    USER_UID = os.getenv("USER_UID")
+
+    if not USER_UID:
+        print("Error: USER_UID not found in .env file")
+        exit(1)
 
     # Step 1: Check for Arduino connection
     print("\n1. Checking for Arduino connection...")
@@ -343,28 +384,26 @@ if __name__ == "__main__":
 
     # Step 2: Test communication
     print("\n2. Testing communication with Arduino...")
-    try:
-        ser = serial.Serial(arduino_port, 9600, timeout=1)
-        time.sleep(2)  # Wait for Arduino to reset
-        
-        # Send a test command and read response
-        ser.write(b'1\n')
-        time.sleep(1)
-        response = ser.readline().decode().strip()
-        print(f"Arduino response: {response}")
-        
-        if response:
-            print("Communication test successful!")
-        else:
-            print("No response from Arduino!")
-            exit(1)
-            
-    except Exception as e:
-        print(f"Error communicating with Arduino: {e}")
-        exit(1)
+    arduino_ports = [p for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
 
-    # # Step 3: Test servo control
-    # print("\n3. Testing servo control...")
+    arduino_port = ""
+    
+    if not arduino_ports:
+        # print("No Arduino found! Testing fallback.")
+        if not arduino_ports:
+            # Try matching by vendor ID or product ID if needed
+            flag = False
+            for p in serial.tools.list_ports.comports():
+                flag = True
+                arduino_port = p.device
+                print(p.device, p.description, p.vid, p.pid)
+            if not flag:
+                print("Still error")
+                exit(1)
+            
+
+    # # Step 3: Test servo movement
+    # print("\n3. Testing servo movement...")
     # try:
     #     # Test position 1 (60 degrees)
     #     print("Moving to position 1 (60 degrees)...")
@@ -381,11 +420,27 @@ if __name__ == "__main__":
     #     ser.write(b'0\n')
     #     time.sleep(2)
         
-    #     print("Servo control test completed!")
+    #     print("Servo movement test completed!")
         
     # except Exception as e:
     #     print(f"Error controlling servo: {e}")
     #     exit(1)
+
+    # Step 4: Test water_plant function
+    print("\n4. Testing water_plant function...")
+    try:
+        # Test watering pipe 0 for 3 seconds
+        print("Testing watering for pipe 0 (3 seconds)...")
+        success = water_plant(pipe_id=0, duration_seconds=3)
+        
+        if success:
+            print("Watering test successful!")
+        else:
+            print("Watering test failed!")
+            
+    except Exception as e:
+        print(f"Error during watering test: {e}")
+        exit(1)
     finally:
         ser.close()
         print("\nAll tests completed!")
