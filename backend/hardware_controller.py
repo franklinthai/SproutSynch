@@ -8,6 +8,7 @@ import serial.tools.list_ports
 import os
 import dotenv
 from api_client import *
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -24,289 +25,155 @@ logger = logging.getLogger("sproutsynch.hardware")
 active_pumps = {}
 pump_lock = threading.Lock()
 
-class PumpController:
-    """
-    Controller for water pumps and servo motor through Arduino serial commands.
-    Handles activation and deactivation of pumps and controls servo rotation.
-    """
-    
-    def __init__(self):
-        """Initialize the pump controller and set up serial connection."""
-        self.is_initialized = False
-        self.serial_initialized = False
-        self.current_pipe_id = 0  # Track current pipe position
-        self.ser = None
+class HardwareController:
+    def __init__(self, port='/dev/ttyACM0', baud_rate=9600):
+        self.port = port
+        self.baud_rate = baud_rate
+        self.serial = None
+        self.connected = False
         
+    def connect(self):
+        """Establish connection with Arduino"""
         try:
-            # Find Arduino port
-            arduino_ports = [p for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
-            if not arduino_ports:
-                # Try fallback method
-                for p in serial.tools.list_ports.comports():
-                    if p.vid and p.pid:  # If it has vendor and product IDs
-                        arduino_ports = [p]
-                        break
-            
-            if arduino_ports:
-                self.arduino_port = arduino_ports[0].device
-                self.ser = serial.Serial(self.arduino_port, 9600, timeout=1)
-                time.sleep(2)  # Wait for Arduino to reset
-                self.serial_initialized = True
-                logger.info(f"Serial connection initialized on port {self.arduino_port}")
-            
-            self.is_initialized = True
-            logger.info("Pump controller initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize pump controller: {e}")
-    
-    def select_pipe(self, pipe_id: int):
-        """
-        Send command to Arduino to select a specific pipe.
-        
-        Args:
-            pipe_id: Target pipe ID (0-3)
-        """
-        if pipe_id not in range(4):
-            logger.warning(f"Invalid pipe ID: {pipe_id}, ignoring")
-            return False
-        
-        if not self.serial_initialized:
-            logger.error("Serial connection not initialized")
-            return False
-        
-        try:
-            # Send command to Arduino
-            self.ser.write(f"{pipe_id}\n".encode())
-            time.sleep(0.5)  # Wait for Arduino to process
-            
-            # Update current position
-            self.current_pipe_id = pipe_id
-            logger.info(f"Now at pipe {pipe_id}")
+            self.serial = serial.Serial(self.port, self.baud_rate, timeout=1)
+            time.sleep(2)  # Wait for Arduino to reset
+            self.connected = True
+            logger.info(f"Successfully connected to Arduino on {self.port}")
             return True
         except Exception as e:
-            logger.error(f"Error selecting pipe {pipe_id}: {e}")
+            logger.error(f"Failed to connect to Arduino: {e}")
+            self.connected = False
             return False
-    
-    def activate_pump(self, pipe_id, duration_seconds):
+            
+    def disconnect(self):
+        """Close the serial connection"""
+        if self.serial and self.serial.is_open:
+            self.serial.close()
+            self.connected = False
+            logger.info("Disconnected from Arduino")
+            
+    def send_command(self, command):
+        """Send a command to Arduino and wait for response"""
+        if not self.connected:
+            logger.error("Not connected to Arduino")
+            return None
+            
+        try:
+            self.serial.write(f"{command}\n".encode())
+            response = self.serial.readline().decode().strip()
+            logger.debug(f"Sent: {command}, Received: {response}")
+            return response
+        except Exception as e:
+            logger.error(f"Error sending command to Arduino: {e}")
+            return None
+            
+    def test_connection(self):
+        """Test the connection with Arduino"""
+        if not self.connected:
+            return False
+            
+        response = self.send_command("TEST")
+        return response == "OK"
+        
+    def water_plant(self, pipe_id, duration, uid, plant_name):
         """
-        Activate the water pump for a specific pipe.
+        Water a specific plant and update the last_watered timestamp
         
         Args:
             pipe_id: The ID of the pipe to activate
-            duration_seconds: How long to run the pump in seconds
+            duration: Duration in seconds to water the plant
+            uid: User ID for API update
+            plant_name: Name of the plant being watered
             
         Returns:
-            bool: True if successful, False otherwise
+            bool: True if watering was successful, False otherwise
         """
-        if not self.is_initialized:
-            logger.error("Cannot activate pump: Controller not initialized")
+        if not self.connected:
+            logger.error("Not connected to Arduino")
             return False
-        
+            
         try:
-            logger.info(f"Activating pump for pipe ID {pipe_id} for {duration_seconds} seconds")
+            # Send watering command to Arduino
+            command = f"WATER {pipe_id} {duration}"
+            response = self.send_command(command)
             
-            # First select the correct pipe
-            if not self.select_pipe(pipe_id):
+            if response != "OK":
+                logger.error(f"Arduino rejected watering command: {response}")
                 return False
+                
+            # Wait for watering to complete
+            time.sleep(duration)
             
-            # Create a timer thread to deactivate after duration
-            timer = threading.Timer(duration_seconds, self.deactivate_pump, args=[pipe_id])
-            
-            # Store the active pump thread
-            with pump_lock:
-                active_pumps[pipe_id] = {
-                    'start_time': time.time(),
-                    'duration': duration_seconds,
-                    'timer': timer
-                }
-            
-            # Start the timer thread
-            timer.start()
-            
+            # Update last_watered timestamp
+            success = update_last_watered(uid, plant_name)
+            if not success:
+                logger.error("Failed to update last_watered timestamp")
+                return False
+                
+            logger.info(f"Successfully watered plant {plant_name} for {duration} seconds")
             return True
+            
         except Exception as e:
-            logger.error(f"Error activating pump for pipe {pipe_id}: {e}")
+            logger.error(f"Error during watering process: {e}")
             return False
-    
-    def deactivate_pump(self, pipe_id):
-        """
-        Deactivate the water pump for a specific pipe.
-        
-        Args:
-            pipe_id: The ID of the pipe to deactivate
             
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        with pump_lock:
-            if pipe_id not in active_pumps:
-                logger.warning(f"Pump for pipe {pipe_id} is not active")
-                return False
+    def get_moisture(self, pipe_id):
+        """Get moisture reading for a specific pipe"""
+        if not self.connected:
+            return None
             
-            pump_info = active_pumps.pop(pipe_id)
-        
+        response = self.send_command(f"MOISTURE {pipe_id}")
         try:
-            logger.info(f"Deactivating pump for pipe ID {pipe_id}")
-            
-            active_duration = time.time() - pump_info['start_time']
-            logger.info(f"Pump for pipe {pipe_id} was active for {active_duration:.2f} seconds")
-            
-            return True
-        except Exception as e:
-            logger.error(f"Error deactivating pump for pipe {pipe_id}: {e}")
-            return False
-    
-    def get_active_pumps(self):
-        """Get a list of currently active pumps."""
-        with pump_lock:
-            return {pid: {
-                'duration': info['duration'],
-                'elapsed': time.time() - info['start_time']
-            } for pid, info in active_pumps.items()}
-    
-    def emergency_stop(self):
-        """
-        Emergency stop all pumps.
-        
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        logger.warning("EMERGENCY STOP: Deactivating all pumps")
-        
-        with pump_lock:
-            active_pipe_ids = list(active_pumps.keys())
-        
-        success = True
-        for pipe_id in active_pipe_ids:
-            if not self.deactivate_pump(pipe_id):
-                success = False
-        
-        return success
-    
-    def cleanup(self):
-        """Clean up resources when done."""
-        # Stop all active pumps first
-        self.emergency_stop()
-        
-        # Close serial connection
-        if self.serial_initialized and self.ser:
-            try:
-                self.ser.close()
-                logger.info("Serial connection closed")
-            except Exception as e:
-                logger.error(f"Error closing serial connection: {e}")
+            return float(response)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid moisture reading: {response}")
+            return None
 
-# Create a singleton instance to be used by other modules
-controller = PumpController()
-
-def water_plant(pipe_id, duration_seconds):
-    """
-    Water a specific plant using its pipe_id.
+def test_hardware_controller():
+    """Run a comprehensive test of the hardware controller"""
+    controller = HardwareController()
     
-    Args:
-        pipe_id: The ID of the pipe/plant to water
-        duration_seconds: How long to run the pump in seconds
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        # First select the correct pipe using the servo
-        if not controller.select_pipe(pipe_id):
-            return False
-        
-        # Then activate the pump for the specified duration
-        success = controller.activate_pump(pipe_id, duration_seconds)
-        
-        if success:
-            logger.info(f"Successfully watered plant at pipe {pipe_id} for {duration_seconds} seconds")
-            return True
-        else:
-            logger.error(f"Failed to water plant at pipe {pipe_id}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error watering plant at pipe {pipe_id}: {e}")
-        return False
+    print("\n=== SproutSynch Hardware Controller Test ===")
+    
+    # Test 1: Connection
+    print("\n1. Testing Arduino Connection...")
+    if not controller.connect():
+        print("❌ Failed to connect to Arduino")
+        return
+    print("✅ Connected to Arduino")
+    
+    # Test 2: Basic Communication
+    print("\n2. Testing Basic Communication...")
+    if not controller.test_connection():
+        print("❌ Failed to communicate with Arduino")
+        controller.disconnect()
+        return
+    print("✅ Basic communication successful")
+    
+    # Test 3: Servo Control
+    print("\n3. Testing Servo Control...")
+    test_pipe = 1
+    test_duration = 2
+    
+    print(f"Testing pipe {test_pipe} for {test_duration} seconds...")
+    if not controller.water_plant(test_pipe, test_duration, "TEST_UID", "Test Plant"):
+        print("❌ Failed to control servo")
+        controller.disconnect()
+        return
+    print("✅ Servo control successful")
+    
+    # Test 4: Moisture Sensor
+    print("\n4. Testing Moisture Sensor...")
+    moisture = controller.get_moisture(test_pipe)
+    if moisture is None:
+        print("❌ Failed to read moisture")
+        controller.disconnect()
+        return
+    print(f"✅ Moisture reading: {moisture}%")
+    
+    # Cleanup
+    controller.disconnect()
+    print("\n✅ All tests completed successfully!")
 
 if __name__ == "__main__":
-    print("Hardware Controller Test")
-    print("=" * 50)
-
-    # Load environment variables
-    dotenv_path = Path(__file__).parent / ".env"
-    dotenv.load_dotenv(dotenv_path)
-    USER_UID = os.getenv("USER_UID")
-
-    if not USER_UID:
-        print("Error: USER_UID not found in .env file")
-        exit(1)
-    else:
-        print(f"USER_UID found: {USER_UID}")
-
-    # Load the plant data from website to check
-    plant_data = get_api_data(USER_UID)
-    print("NOW PRINTING PLANT DATA")
-    print(plant_data)
-
-    # Step 1: Test Arduino connection
-    print("\n1. Testing Arduino connection...")
-    arduino_ports = [p for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
-
-    arduino_port = ""
-    
-    if not arduino_ports:
-        # print("No Arduino found! Testing fallback.")
-        if not arduino_ports:
-            # Try matching by vendor ID or product ID if needed
-            flag = False
-            for p in serial.tools.list_ports.comports():
-                flag = True
-                arduino_port = p.device
-                print(p.device, p.description, p.vid, p.pid)
-            if not flag:
-                print("Still error")
-                exit(1)
-
-    # Step 2: Test servo movement
-    print("\n2. Testing servo movement...")
-    try:
-        # Test position 1 (60 degrees)
-        print("Moving to position 1 (60 degrees)...")
-        controller.ser.write(b'1\n')
-        time.sleep(2)
-        
-        # Test position 2 (160 degrees)
-        print("Moving to position 2 (160 degrees)...")
-        controller.ser.write(b'2\n')
-        time.sleep(2)
-        
-        # Return to position 0
-        print("Returning to position 0...")
-        controller.ser.write(b'0\n')
-        time.sleep(2)
-        
-        print("Servo movement test completed!")
-        
-    except Exception as e:
-        print(f"Error controlling servo: {e}")
-        exit(1)
-
-    # Step 3: Test water_plant function
-    print("\n3. Testing water_plant function...")
-    try:
-        # Test watering pipe 0 for 3 seconds
-        print("Testing watering for pipe 0 (3 seconds)...")
-        success = water_plant(pipe_id=0, duration_seconds=3)
-        
-        if success:
-            print("Watering test successful!")
-        else:
-            print("Watering test failed!")
-            
-    except Exception as e:
-        print(f"Error during watering test: {e}")
-        exit(1)
-    finally:
-        controller.ser.close()
-        print("\nAll tests completed!")
+    test_hardware_controller()

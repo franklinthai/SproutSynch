@@ -1,6 +1,14 @@
 import requests
 import time
 from datetime import datetime, timezone
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("sproutsynch.api")
 
 def get_api_data(uid):
     """
@@ -25,13 +33,13 @@ def get_api_data(uid):
             return response.json()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             if attempt < max_retries - 1:
-                print(f"Request failed: {e}. Retrying in {retry_delay} seconds...")
+                logger.warning(f"Request failed: {e}. Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
             else:
-                print(f"All {max_retries} attempts failed.")
+                logger.error(f"All {max_retries} attempts failed.")
                 raise
 
-def update_last_watered(uid, plant_name, timestamp=None):
+def update_last_watered(uid, plant_name, timestamp=None, interactive=False):
     """
     Performs a PUT request to update the last_watered field for a specific plant.
     
@@ -39,13 +47,11 @@ def update_last_watered(uid, plant_name, timestamp=None):
         uid: The user ID
         plant_name: The name of the plant that was watered
         timestamp: Optional ISO-formatted timestamp. If None, the current UTC time is used.
+        interactive: If True, shows current data and asks for confirmation
         
     Returns:
         bool: True if the update was successful, False otherwise
     """
-    # API endpoint
-    url = "https://e12f-205-175-106-236.ngrok-free.app/api/water"
-    
     # Use current UTC time if no timestamp provided
     if timestamp is None:
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -56,6 +62,26 @@ def update_last_watered(uid, plant_name, timestamp=None):
         "plant_name": plant_name,
         "last_watered": timestamp
     }
+    
+    if interactive:
+        print(f"\n==== SproutSynch Last Watered Update ====")
+        print(f"User ID: {uid}")
+        print(f"Plant Name: {plant_name}")
+        print(f"Timestamp: {timestamp}")
+        print("=" * 48)
+        
+        # Show current plant data
+        print("\nCurrent Plant Data:")
+        display_plant_data(uid)
+        
+        # Confirm before proceeding
+        confirmation = input("\nUpdate last_watered timestamp? (y/n): ")
+        if confirmation.lower() != 'y':
+            print("Update cancelled.")
+            return False
+    
+    # API endpoint
+    url = "https://sprout-synch.vercel.app/api/water"
     
     # Configure retry settings
     max_retries = 3
@@ -68,15 +94,23 @@ def update_last_watered(uid, plant_name, timestamp=None):
             response.raise_for_status()
             
             # Log the successful update
-            print(f"Successfully updated last_watered for plant '{plant_name}' to {timestamp}")
+            logger.info(f"Successfully updated last_watered for plant '{plant_name}' to {timestamp}")
+            
+            if interactive:
+                print("\nUpdate successful!")
+                print("\nUpdated Plant Data:")
+                display_plant_data(uid)
+            
             return True
             
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             if attempt < max_retries - 1:
-                print(f"Update failed: {e}. Retrying in {retry_delay} seconds...")
+                logger.warning(f"Update failed: {e}. Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
             else:
-                print(f"All {max_retries} attempts to update last_watered failed: {e}")
+                logger.error(f"All {max_retries} attempts to update last_watered failed: {e}")
+                if interactive:
+                    print("Update failed. Please check the logs for more information.")
                 return False
 
 def display_plant_data(uid):
@@ -119,7 +153,7 @@ def display_plant_data(uid):
         
         print("\n" + "="*50 + "\n")
     except Exception as e:
-        print(f"Error fetching or displaying plant data: {e}")
+        logger.error(f"Error fetching or displaying plant data: {e}")
 
 def get_plants_needing_water(uid, moisture_threshold=25):
     """
@@ -162,16 +196,28 @@ def get_plants_needing_water(uid, moisture_threshold=25):
                 
         return plants_needing_water, total_plants
     except Exception as e:
-        print(f"Error checking plants needing water: {e}")
+        logger.error(f"Error checking plants needing water: {e}")
         return [], 0
 
 if __name__ == "__main__":
     print("SproutSynch API Client - Test Script")
     print("=" * 50)
     
-    # You can replace this with your actual user ID
-    # TEST_UID = "CJYDOOtxeShTEcIUQepJIt5sQa02"
+    # Test interactive update
     TEST_UID = "IbRVlsm2dKfP0sR7WrjQKY9IRMC2"
+    TEST_PLANT = "Test Plant"
+    
+    # Show current data
+    print("\nCurrent Plant Data:")
+    display_plant_data(TEST_UID)
+    
+    # Test update
+    success = update_last_watered(TEST_UID, TEST_PLANT, interactive=True)
+    
+    if success:
+        print("\nTest completed successfully!")
+    else:
+        print("\nTest failed. Check the logs for details.")
     
     # Test 1: Basic API connection
     print("\n[TEST 1] Basic API Connection")
