@@ -44,3 +44,4 @@ next-env.d.ts
 
 # hardware related
 hardware.log
+__pycache__
