@@ -40,69 +40,32 @@ def get_api_data(uid):
                 raise
 
 def update_last_watered(uid, plant_name, timestamp=None, interactive=False):
-    """
-    Performs a PUT request to update the last_watered field for a specific plant.
-    
-    Args:
-        uid: The user ID
-        plant_name: The name of the plant that was watered
-        timestamp: Optional ISO-formatted timestamp. If None, the current UTC time is used.
-        interactive: If True, shows current data and asks for confirmation
-        
-    Returns:
-        bool: True if the update was successful, False otherwise
-    """
-    # Use current UTC time if no timestamp provided
     if timestamp is None:
         timestamp = datetime.now(timezone.utc).isoformat()
-    
-    # Prepare the data for the PUT request
+
     data = {
         "uid": uid,
-        "plant_name": plant_name,
-        "last_watered": timestamp
+        "time": timestamp,
+        "names": [plant_name]  # must be a list
     }
-    
-    if interactive:
-        print(f"\n==== SproutSynch Last Watered Update ====")
-        print(f"User ID: {uid}")
-        print(f"Plant Name: {plant_name}")
-        print(f"Timestamp: {timestamp}")
-        print("=" * 48)
-        
-        # Show current plant data
-        print("\nCurrent Plant Data:")
-        display_plant_data(uid)
-        
-        # Confirm before proceeding
-        confirmation = input("\nUpdate last_watered timestamp? (y/n): ")
-        if confirmation.lower() != 'y':
-            print("Update cancelled.")
-            return False
-    
+
     # API endpoint
-    url = "https://sprout-synch.vercel.app/api/water"
-    
-    # Configure retry settings
+    url = "https://sprout-synch.vercel.app/api"
+
+    # Retry logic remains unchanged
     max_retries = 3
     retry_delay = 2
-    
-    # Attempt the request with retries
+
     for attempt in range(max_retries):
         try:
             response = requests.put(url, json=data)
             response.raise_for_status()
-            
-            # Log the successful update
             logger.info(f"Successfully updated last_watered for plant '{plant_name}' to {timestamp}")
-            
             if interactive:
                 print("\nUpdate successful!")
                 print("\nUpdated Plant Data:")
                 display_plant_data(uid)
-            
             return True
-            
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             if attempt < max_retries - 1:
                 logger.warning(f"Update failed: {e}. Retrying in {retry_delay} seconds...")
@@ -204,7 +167,7 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Test interactive update
-    TEST_UID = "IbRVlsm2dKfP0sR7WrjQKY9IRMC2"
+    TEST_UID = "fCX6EMoux6YyWOWM5Y9U8fUQF4p2"
     TEST_PLANT = "Test Plant"
     
     # Show current data
