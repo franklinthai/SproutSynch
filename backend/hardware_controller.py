@@ -421,15 +421,15 @@ if __name__ == "__main__":
     #     ser.write(b'1\n')
     #     time.sleep(2)
         
-        # Test position 2 (160 degrees)
-        print("Moving to position 2 (160 degrees)...")
-        ser.write(b'2\n')
-        time.sleep(5)
+        # # Test position 2 (160 degrees)
+        # print("Moving to position 2 (160 degrees)...")
+        # ser.write(b'2\n')
+        # time.sleep(5)
         
-        # Return to position 0
-        print("Returning to position 0...")
-        ser.write(b'0\n')
-        time.sleep(5)
+        # # Return to position 0
+        # print("Returning to position 0...")
+        # ser.write(b'0\n')
+        # time.sleep(5)
         
     #     print("Servo movement test completed!")
         
