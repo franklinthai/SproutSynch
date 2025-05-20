@@ -12,7 +12,7 @@ def get_api_data(uid):
     Returns:
         dict: The parsed JSON response as a dictionary
     """
-    url = "https://e12f-205-175-106-236.ngrok-free.app/api"
+    url = "https://sprout-synch.vercel.app/api"
     params = {"uid": uid}
     
     max_retries = 3

@@ -7,6 +7,7 @@ import serial
 import serial.tools.list_ports
 import os
 import dotenv
+from api_client import *
 
 # Configure logging
 logging.basicConfig(
@@ -240,6 +241,13 @@ if __name__ == "__main__":
     if not USER_UID:
         print("Error: USER_UID not found in .env file")
         exit(1)
+    else:
+        print(f"USER_UID found: {USER_UID}")
+
+    # Load the plant data from website to check
+    plant_data = get_api_data(USER_UID)
+    print("NOW PRINTING PLANT DATA")
+    print(plant_data)
 
     # Step 1: Test Arduino connection
     print("\n1. Testing Arduino connection...")
