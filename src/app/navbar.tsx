@@ -8,7 +8,6 @@ import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import GrassIcon from '@mui/icons-material/Grass';
 import { useRouter } from 'next/navigation'; 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -21,15 +20,19 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
+
+// an array of pages to display on the navbar
 const pages = [
-  { name: 'Home', path: '/', perm: true },
   { name: 'Add plant', path: '/add', perm: false },
   { name: 'My plants', path: '/my-plants', perm: false },
   { name: 'About us', path: '/about', perm: true },
 ];
 
-//  TODO ADD WHITE HIGHLIGITNG WHEN ON A SPECIFIC PAGE
-function ResponsiveAppBar() {
+// TODO ADD WHITE HIGHLIGITNG WHEN ON A SPECIFIC PAGE
+
+// The navbar at the top of each page. Contains the website logo and name, some page links, and
+// the user's display name which opens a dropdown with account and log out buttons when clicked.
+export default function ResponsiveAppBar() {
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // controls account dropdown
   const open = Boolean(anchorEl); // indicates whether account dropdown is open or closed
@@ -39,50 +42,50 @@ function ResponsiveAppBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleDrawer = (open) => () => setDrawerOpen(open);
   
+  // Called when the component is loaded. Checks if the user is logged in.
   useEffect(()=>{
     onAuthStateChanged(auth, (user) => {
       if (user) {
         setUid(user.uid);
         setDisplayName(user.displayName);      
-        console.log("display name: '" + displayName + "'");
-        console.log(typeof(displayName))
         setEmail(user.email);
-      } else {
-        console.log("user is logged out")
       }
     });
   }, []);
 
+  // Navigates to the provided path using the router.
   const handleNavigation = (path) => {
     router.push(path); // Navigate to the selected page
   };
 
-  // when account dropdown is clicked
-  const handleAccountClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    console.log("display name: '" + displayName + "' type of " + typeof(displayName));
+  // Called when the display name to the right is clicked. Opens a dropdown with account and log
+  // out options. 
+  const handleDropdownClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
-  // when Profile button is clicked 
-  const handleProfile = () => {
-    handleAccountClose;
+  // Called when account button is clicked from the dropdown. Navigates to the account page.
+  const handleAccount = () => {
+    handleDropdownClose;
     handleNavigation('/account');
   }
 
-  // when Log out button is clicked
+  // Called when Log out button is clicked from the dropdown. Signs the user out and sends the
+  // user to the home page.
   const handleLogout = () => {
     signOut(auth).then(() => {
       setUid(undefined);
       setDisplayName("Authentication Error");
       setEmail("Authentication Error");
-      handleNavigation("/");    
+      handleNavigation("/");
+      location.reload();
     }).catch((error) => {
       alert(error);
     });
   }
 
-  // closes the dropdown
-  const handleAccountClose = () => {
+  // Called when the dropdown is closed.
+  const handleDropdownClose = () => {
     setAnchorEl(null);
   };
 
@@ -91,7 +94,6 @@ function ResponsiveAppBar() {
     <AppBar position="static" sx={{ backgroundColor: '#EAF2E0' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <img src="logo.svg" alt="Logo" width={32} height={32} />
           {/* Title */}
           <Typography
             variant="h4"
@@ -114,7 +116,9 @@ function ResponsiveAppBar() {
               cursor: 'pointer', 
             }}
             onClick={() => handleNavigation('/')} // Navigate to Home
+            className="flex items-center"
           >
+            <img src="logo.svg" alt="Logo" width={32} height={32}  className="mr-2"/>
             SproutSynch
           </Typography>
           
@@ -222,7 +226,7 @@ function ResponsiveAppBar() {
               aria-controls={open ? 'basic-menu' : undefined}
               aria-haspopup="true"
               aria-expanded={open ? 'true' : undefined}
-              onClick={handleAccountClick}
+              onClick={handleDropdownClick}
               sx={{
                 my: 2,
                 color: '#50734A',
@@ -249,12 +253,12 @@ function ResponsiveAppBar() {
               id="basic-menu"
               anchorEl={anchorEl}
               open={open}
-              onClose={handleAccountClose}
+              onClose={handleDropdownClose}
               MenuListProps={{
                 'aria-labelledby': 'basic-button',
               }}
             >
-              <MenuItem className="DropdownItem" sx={{ml: 'auto', justifyContent: 'flex-end', fontSize: '0.9rem', fontFamily: 'Open Sans'}} onClick={handleProfile}>Account</MenuItem>
+              <MenuItem className="DropdownItem" sx={{ml: 'auto', justifyContent: 'flex-end', fontSize: '0.9rem', fontFamily: 'Open Sans'}} onClick={handleAccount}>Account</MenuItem>
               <MenuItem className="DropdownItem" sx={{justifyContent: 'flex-end', fontSize: '0.9rem', ml: 'auto'}} onClick={handleLogout}>Log Out</MenuItem>
             </Menu>
           </>
@@ -264,5 +268,3 @@ function ResponsiveAppBar() {
     </AppBar>
   );
 }
-
-export default ResponsiveAppBar;

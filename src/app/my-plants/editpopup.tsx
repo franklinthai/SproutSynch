@@ -17,6 +17,7 @@ import { db } from "../../utils/firebaseconfig";
 import { fetchPlantByName, deleteFirestore } from "@/utils/firestore";
 import { MenuItem, Select } from "@mui/material";
 
+// CSS for the titles.
 const titleStyle = {
   color: "text.primary",
   fontFamily: "Open Sans, sans-serif",
@@ -25,6 +26,7 @@ const titleStyle = {
   lineHeight: "30px",
 };
 
+// CSS for the text.
 const textStyle = {
   color: "text.secondary",
   fontFamily: "Open Sans, sans-serif",
@@ -34,10 +36,12 @@ const textStyle = {
   marginTop: "4px",
 };
 
+// CSS for the grid.
 const gridItemStyle = {
   marginBottom: "16px",
 };
 
+// Interface for the main function.
 interface EditPopupProps {
   plantName: string;
   pipes: string;
@@ -47,16 +51,21 @@ interface EditPopupProps {
   handleRemove: (pid: any) => void;
 }
 
+// The edit popup, which is a popup that appears when the user clicks on one of their plants on
+// the my-plants page. It allows the user to edit the species, description, duration, interval
+// and pipe number of their plant.
 export default function EditPopup({ plantName, pipes, uid, handleClose, handleUpdate, handleRemove}: EditPopupProps) {
   const [plant, setPlant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedPlant, setUpdatedPlant] = useState(null);
 
+  // Called when plantName changes (i.e. when the popup is created). Sets the plant data for the popup based on the name
   useEffect(() => {
     async function fetchData() {
       const data = await fetchPlantByName(plantName, uid);
       setPlant(data);
-      setUpdatedPlant(data); // Initialize updatedPlant with fetched data
+      // Initialize updatedPlant with fetched data
+      setUpdatedPlant(data);
     }
 
     if (plantName) {
@@ -64,18 +73,23 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
     }
   }, [plantName]);
 
-  const handleEditToggle = () => {
+  // Called when the edit button is clicked. Turns on editing mode.
+  const handleEdit = () => {
     if (!isEditing) {
       // Switch to editing mode, initialize fields if not already done
       setUpdatedPlant({ ...plant });
     }
-    setIsEditing(!isEditing);
+    setIsEditing(true);
   };
 
+  // Called when the user clicks the save button. Makes sure all fields are valid before
+  // updating the plant.
   const handleSave = async () => {
     if (updatedPlant) {
       try {
         if (updatedPlant.duration <= 0) throw new Error("Duration must be positive");
+        if (updatedPlant.interval <= 0) throw new Error("Interval must be positive");
+        // check if another plant is already using the pipe id
         const plantQuery = query(collection(db, "users", uid, "plants"), where("pipe_id", "==", updatedPlant.pipe_id));
         const querySnapshot = await getDocs(plantQuery);
         querySnapshot.forEach((doc) => {
@@ -83,6 +97,7 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
             throw new Error("Pipe number already in use");
           }
         });
+        // update plant
         const plantDoc = doc(db, "users", uid, "plants", updatedPlant.id);
         await updateDoc(plantDoc, {
           species: updatedPlant.species,
@@ -92,19 +107,25 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
           interval: updatedPlant.interval,
           //soil_moisture: updatedPlant.soil_moisture,
         });
-        setPlant(updatedPlant); // Update the displayed data
-        setIsEditing(false); // Exit editing mode
-        handleUpdate(updatedPlant); // Update the plant in the main page
+        // update the displayed data
+        setPlant(updatedPlant); 
+        // exit editing mode
+        setIsEditing(false); 
+        // update the plant in the main page
+        handleUpdate(updatedPlant); 
       } catch (error) {
         alert(error);
       }
     }
   };
 
+  // Called when the user clicks the delete button. Prompts them to confirm their choice and
+  // removes the plant from Firestore and from the current instance of the my-plants page.
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this plant?")) {
       try {
         await deleteFirestore(uid, plant.id);
+        // remove plant from the my-plants page
         handleRemove(plant.id)
       } catch (error) {
         alert(error);
@@ -112,6 +133,7 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
     }
   }
 
+  // Called when any of the editable fields are changed. Updates the UpdatedPlant variable.
   const handleChange = (field, value) => {
     setUpdatedPlant((prev) => ({
       ...prev,
@@ -119,6 +141,7 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
     }));
   };
 
+  // Calculates the next watering field.
   const calculateNextWatering = () => {
     if (plant?.last_watered && plant?.interval) {
       const nextWateringDate = new Date(
@@ -149,7 +172,7 @@ export default function EditPopup({ plantName, pipes, uid, handleClose, handleUp
               aria-label={isEditing ? "save" : "edit"}
               size="small"
               sx={{ ml: 1 }}
-              onClick={isEditing ? handleSave : handleEditToggle}
+              onClick={isEditing ? handleSave : handleEdit}
             >
               {isEditing ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
             </IconButton>
