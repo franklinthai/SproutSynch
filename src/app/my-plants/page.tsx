@@ -57,11 +57,20 @@ export default function MyPlants() {
     }
   }, []);
 
-  // Called when the user toggles the activation for one of their plants. Updates Firestore.
   const toggleActive = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setActive(e.target.checked);
-    await updateActive(uid, e.target.value, active);
-  }
+  const isActive = e.target.checked;
+  const plantId = e.target.value;
+
+  // Update Firestore
+  await updateActive(uid, plantId, isActive);
+  // have to update plant array kind of cooked each plant should be a compenent
+  setPlantArr((prev) =>
+    prev.map((plant) =>
+      plant.id === plantId ? { ...plant, active: isActive } : plant
+    )
+  );
+};
+
 
   // Called when the user clicks on the pipes bubble in the bottom left. Opens a box that allows
   // them to edit the number of pipes they have. 
@@ -109,7 +118,9 @@ export default function MyPlants() {
               {plant.name}
               <PowerSettingsNewIcon className="Icon mr-0 ml-auto" fontSize="small"/>
               <ThemeProvider theme={theme}>
-                <Switch defaultChecked value={plant.id} onChange={toggleActive} />
+                <Switch checked={plant.active} value={plant.id} onChange={toggleActive}
+                    // stop popup for plants
+                    onClick={(e) => e.stopPropagation()} />
               </ThemeProvider>
             </div>
             <p className="pl-4">{plant.species ? `Species: ${plant.species}` : ""}</p>
