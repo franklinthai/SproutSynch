@@ -41,7 +41,7 @@ export default function Home() {
             " Log in or sign up to get started. Your plants will thank you!"
             }
           </p>
-          <div className="flex">
+          <div className="flex justify-center lg:justify-start">
             <button
               className="ActionButton w-fit"
               onClick={loggedIn ? () => router.push("/add") : () => router.push("/login")}

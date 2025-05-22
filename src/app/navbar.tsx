@@ -123,19 +123,9 @@ export default function ResponsiveAppBar() {
           </Typography>
           
               
-          {/* Hamburger menu icon - visible on xs/sm */}
-            <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'none' }, mr: 2 }}>
-            <IconButton
-              size="large"
-              aria-label="menu"
-              onClick={toggleDrawer(true)}
-              sx={{ color: '#50734A' }}
-            >
-              <MenuIcon />
-            </IconButton>
-          </Box>
+        
 
-          <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
+          <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
             <Box
               sx={{ width: 200 }}
               role="presentation"
@@ -263,6 +253,18 @@ export default function ResponsiveAppBar() {
             </Menu>
           </>
           }
+
+          {/* Hamburger menu icon - visible on xs/sm */}
+          <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'none' }, ml: 'auto' }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              onClick={toggleDrawer(true)}
+              sx={{ color: '#50734A' }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
         </Toolbar>
       </Container>
     </AppBar>
