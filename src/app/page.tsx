@@ -1,7 +1,7 @@
 'use client'
 import { useRouter } from "next/navigation";
 import ResponsiveAppBar from "./navbar";
-import plant from './../../assets/plant.png';
+import plant from './../../assets/hello.png';
 import Image from 'next/image';
 import './globals.css';
 import { useEffect, useState } from "react";
@@ -58,15 +58,13 @@ export default function Home() {
             </button>
           </div>
         </div>
-        <div className="bg-custom-gradient rounded-full overflow-hidden w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center shadow-md mt-8 lg:mt-0">
-          <div className="w-full h-full flex items-center justify-center">
-            <Image
-              src={plant}
-              alt="Plant"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 360px"
-              className="object-contain"
-            />
-          </div>
+        <div className="relative bg-custom-gradient rounded-full overflow-hidden w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 shadow-md mt-8 lg:mt-0">
+          <Image
+            src={plant}
+            alt="Plant"
+            fill
+            className="object-contain"
+          />
         </div>
       </div>
     </div>
