@@ -22,7 +22,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 const pages = [
-  { name: 'Home', path: '/', perm: true },
   { name: 'Add plant', path: '/add', perm: false },
   { name: 'My plants', path: '/my-plants', perm: false },
   { name: 'About us', path: '/about', perm: true },
