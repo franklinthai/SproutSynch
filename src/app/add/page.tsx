@@ -48,7 +48,7 @@ export default function Add() {
     ? 
     <p className="mt-8">You must sign in to access this feature.</p>
     :
-    <><h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold">Customize your plant</h1>
+    <><h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mt-8">Customize your plant</h1>
     <div className="w-1/3">
       <div className="Label">Name</div>
       <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter plant name"></input>
