@@ -8,9 +8,6 @@ import { useEffect, useState } from "react";
 import { auth } from '../utils/firebaseconfig.js';
 import { onAuthStateChanged } from "firebase/auth";
 
-// TODO FIX BUTTON 
-// TODO IMAGE LOOKS JANK POSSIBLY SWITCH TO SVG
-
 // The default home page. Contains basic info and buttons to relevant pages.
 export default function Home() {
   const router = useRouter();

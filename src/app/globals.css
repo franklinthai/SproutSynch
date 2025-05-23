@@ -20,6 +20,13 @@ h1 {
   color: rgb(80, 115, 74);
 }
 
+h2 {
+  font-size: 2rem;
+  line-height: 1; 
+  font-weight: 700; 
+  color: rgb(80, 115, 74);
+}
+
 p {
   font-size: 1rem;
   line-height: 1.5rem; 
@@ -131,4 +138,16 @@ input, select {
   font-size: 0.75rem;
   padding: '5px 9px';
   margin-left: auto;
+}
+
+.Portrait {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 300px;
+    object-fit: cover;
+    border-radius: 1.75rem;
+}
+
+.GreenBorder {
+  border-color: rgb(234, 242, 224);
 }
